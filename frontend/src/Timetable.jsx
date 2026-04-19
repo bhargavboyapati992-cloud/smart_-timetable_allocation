@@ -27,7 +27,15 @@ const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 
 export default function Timetable({ departmentId }) {
   const [generating, setGenerating] = useState(false);
-  const [schedule, setSchedule] = useState(null);
+  const [schedule, setSchedule] = useState(() => {
+    // Load last saved timetable for this department
+    try {
+      const saved = localStorage.getItem(`timetable_${departmentId}`);
+      return saved ? JSON.parse(saved) : null;
+    } catch { return null; }
+  });
+  const [isDraft, setIsDraft]     = useState(false);  // true = generated but not yet saved
+  const [saveMsg, setSaveMsg]     = useState('');
 
   const handleGenerate = () => {
     setGenerating(true);
@@ -75,6 +83,8 @@ export default function Timetable({ departmentId }) {
                 });
             });
             setSchedule(grid);
+            setIsDraft(true);   // mark as unsaved draft
+            setSaveMsg('');
         } else {
             console.error("Solver error data:", data);
             alert('Failed to generate schedule. Check constraints! Ensure that you have adequate rooms, teachers, and your requested hours don\'t exceed period availability.');
@@ -89,20 +99,66 @@ export default function Timetable({ departmentId }) {
     });
   };
 
+  const handleSave = () => {
+    try {
+      localStorage.setItem(`timetable_${departmentId}`, JSON.stringify(schedule));
+      setIsDraft(false);
+      setSaveMsg('✅ Timetable saved successfully!');
+      setTimeout(() => setSaveMsg(''), 3000);
+    } catch {
+      setSaveMsg('❌ Failed to save. Try again.');
+    }
+  };
+
+  const handleRegenerate = () => {
+    setIsDraft(false);
+    setSchedule(null);
+    setSaveMsg('');
+    setTimeout(() => handleGenerate(), 100);
+  };
+
   return (
     <div className="glass-panel">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap:'wrap', gap:'0.75rem' }}>
         <div>
           <h2>Department: {departmentId.toUpperCase()}</h2>
-          <p style={{ color: 'var(--text-muted)' }}>AI Computed Timetable</p>
+          <p style={{ color: 'var(--text-muted)' }}>
+            {isDraft
+              ? <span style={{color:'#f59e0b'}}>⚠️ Unsaved draft — click Save to confirm</span>
+              : schedule ? '✅ Saved timetable' : 'AI Computed Timetable'
+            }
+          </p>
         </div>
-        <button 
-          className="btn btn-primary" 
-          onClick={handleGenerate}
-          disabled={generating}
-        >
-          {generating ? 'Generating AI Schedule...' : '🔮 Generate AI Timetable'}
-        </button>
+
+        <div style={{ display:'flex', gap:'0.75rem', alignItems:'center', flexWrap:'wrap' }}>
+          {saveMsg && (
+            <span style={{ fontSize:'0.85rem', color: saveMsg.startsWith('✅') ? '#22c55e' : 'var(--acc-red)' }}>
+              {saveMsg}
+            </span>
+          )}
+
+          {/* Re-generate — always available */}
+          <button
+            className="btn"
+            style={{ background:'rgba(124,58,237,0.15)', color:'var(--primary)', border:'1px solid var(--primary)' }}
+            onClick={schedule ? handleRegenerate : handleGenerate}
+            disabled={generating}
+          >
+            {generating ? '⏳ Generating...' : '🔮 Generate AI Timetable'}
+          </button>
+
+          {/* Save — only visible when there is an unsaved draft */}
+          {isDraft && (
+            <button
+              className="btn btn-primary"
+              onClick={handleSave}
+              style={{ background:'#22c55e', border:'none', fontWeight:700 }}
+            >
+              💾 Save Timetable
+            </button>
+          )}
+        </div>
+      </div>
       </div>
 
       {(schedule || generating) ? (
@@ -147,9 +203,14 @@ export default function Timetable({ departmentId }) {
                         <div className="slot-content">
                           <span className="subject-tag">
                             {cell.sub}
-                            {isLab && colSpan > 1 && (
-                              <span style={{fontSize:'9px', marginLeft:'4px', opacity:0.7}}>
-                                ×{colSpan}hrs
+                            {colSpan > 1 && (
+                              <span style={{
+                                fontSize:'10px', marginLeft:'5px',
+                                background: isLab ? 'rgba(124,58,237,0.3)' : 'rgba(59,130,246,0.3)',
+                                color: isLab ? '#a78bfa' : '#93c5fd',
+                                borderRadius:'4px', padding:'1px 5px', fontWeight:700, letterSpacing:'0.5px'
+                              }}>
+                                {isLab ? '(L)' : '(T)'}
                               </span>
                             )}
                           </span>

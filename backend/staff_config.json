@@ -19,5 +19,13 @@
     "department_id": "admin",
     "role": "admin",
     "display_name": "VIMS Administrator"
+  },
+  {
+    "username": "bhargavboyapati992",
+    "password": "",
+    "department_id": "bhargavboyapati992",
+    "role": "staff",
+    "display_name": "Bhargav Boyapati",
+    "google_email": "bhargavboyapati992@gmail.com"
   }
 ]

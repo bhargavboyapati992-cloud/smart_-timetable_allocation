@@ -159,10 +159,133 @@ function ChangeUsernamePanel({ onBack }) {
   );
 }
 
+// ── Sign Up Panel ──────────────────────────────────────────────────────────────
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+
+function SignUpPanel({ onSuccess, onSwitchToLogin }) {
+  const { login } = useAuth();
+  const [displayName, setDisplayName] = useState('');
+  const [username, setUsername]       = useState('');
+  const [deptId, setDeptId]           = useState('');
+  const [password, setPassword]       = useState('');
+  const [confirm, setConfirm]         = useState('');
+  const [error, setError]             = useState('');
+  const [loading, setLoading]         = useState(false);
+
+  // Load Google Identity Services script once
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID) return;
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => initGoogle();
+    document.head.appendChild(script);
+    return () => document.head.removeChild(script);
+  }, []);
+
+  const initGoogle = () => {
+    if (!window.google) return;
+    window.google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleGoogleCredential,
+    });
+    window.google.accounts.id.renderButton(
+      document.getElementById('google-signin-btn'),
+      { theme: 'filled_black', size: 'large', width: 360, text: 'signup_with' }
+    );
+  };
+
+  const handleGoogleCredential = async ({ credential }) => {
+    setError(''); setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/auth/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.detail || 'Google sign-in failed'); return; }
+      login(data);
+    } catch { setError('Server unreachable.'); }
+    finally { setLoading(false); }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (password !== confirm) { setError('Passwords do not match'); return; }
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username, password, confirm_password: confirm,
+          department_id: deptId, display_name: displayName
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.detail || 'Signup failed'); return; }
+      login(data);  // auto-login after signup
+    } catch { setError('Server unreachable.'); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div>
+      {/* Google button */}
+      {GOOGLE_CLIENT_ID && (
+        <div style={{ marginBottom: '1.25rem' }}>
+          <div id="google-signin-btn" style={{ width:'100%' }}></div>
+          <div style={{ display:'flex', alignItems:'center', gap:'0.5rem', margin:'1rem 0', color:'var(--text-muted)', fontSize:'0.75rem' }}>
+            <hr style={{ flex:1, borderColor:'var(--border)' }} />or sign up with username<hr style={{ flex:1, borderColor:'var(--border)' }} />
+          </div>
+        </div>
+      )}
+
+      {error && <div style={{ color:'var(--acc-red)', background:'rgba(239,68,68,0.1)', borderRadius:'8px', padding:'0.6rem 1rem', marginBottom:'0.75rem', fontSize:'0.85rem' }}>⚠️ {error}</div>}
+
+      <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:'0.85rem' }}>
+        <div className="form-group">
+          <label>Full Name</label>
+          <input type="text" className="input-field" placeholder="e.g. Prof. Bhargav"
+            value={displayName} onChange={e => setDisplayName(e.target.value)} />
+        </div>
+        <div className="form-group">
+          <label>Username <span style={{color:'var(--acc-red)'}}>*</span></label>
+          <input type="text" className="input-field" placeholder="Min. 3 characters"
+            value={username} onChange={e => setUsername(e.target.value)} required />
+        </div>
+        <div className="form-group">
+          <label>Department ID <span style={{color:'var(--acc-red)'}}>*</span></label>
+          <input type="text" className="input-field" placeholder="e.g. cse, ece, mech"
+            value={deptId} onChange={e => setDeptId(e.target.value)} required />
+        </div>
+        <div style={{ display:'flex', gap:'0.75rem' }}>
+          <div className="form-group" style={{ flex:1, margin:0 }}>
+            <label>Password <span style={{color:'var(--acc-red)'}}>*</span></label>
+            <input type="password" className="input-field" placeholder="Min. 6 chars"
+              value={password} onChange={e => setPassword(e.target.value)} required />
+          </div>
+          <div className="form-group" style={{ flex:1, margin:0 }}>
+            <label>Confirm</label>
+            <input type="password" className="input-field" placeholder="Repeat"
+              value={confirm} onChange={e => setConfirm(e.target.value)} required />
+          </div>
+        </div>
+        <button type="submit" className="btn btn-primary" disabled={loading} style={{ width:'100%', marginTop:'0.25rem' }}>
+          {loading ? '⏳ Creating account...' : '🚀 Create Account'}
+        </button>
+      </form>
+    </div>
+  );
+}
+
 // ── Login Page ─────────────────────────────────────────────────────────────────
 function LoginPage() {
   const { login } = useAuth();
-  const [view, setView]           = useState('login'); // 'login' | 'forgot' | 'changeuser'
+  const [view, setView]           = useState('login'); // 'login' | 'signup' | 'forgot' | 'changeuser'
   const [username, setUsername]   = useState('');
   const [password, setPassword]   = useState('');
   const [grid1, setGrid1]         = useState('');
@@ -200,10 +323,10 @@ function LoginPage() {
 
   return (
     <div style={{ height:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg)' }}>
-      <div className="glass-panel" style={{ width:'100%', maxWidth:'440px' }}>
+      <div className="glass-panel" style={{ width:'100%', maxWidth:'460px' }}>
 
         {/* Header — always visible */}
-        <div style={{ textAlign:'center', marginBottom:'2rem' }}>
+        <div style={{ textAlign:'center', marginBottom:'1.5rem' }}>
           <div style={{
             width:'64px', height:'64px', borderRadius:'16px', margin:'0 auto 1rem',
             background:'linear-gradient(135deg, var(--primary), #a855f7)',
@@ -213,9 +336,27 @@ function LoginPage() {
           <p style={{ color:'var(--text-muted)', fontSize:'0.85rem' }}>Timetable Allocation System — Authorised Access Only</p>
         </div>
 
+        {/* ── Tab bar (Login / Sign Up) ── */}
+        {(view === 'login' || view === 'signup') && (
+          <div style={{ display:'flex', borderRadius:'10px', overflow:'hidden', border:'1px solid var(--border)', marginBottom:'1.5rem' }}>
+            {['login','signup'].map(tab => (
+              <button key={tab} onClick={() => setView(tab)}
+                style={{
+                  flex:1, padding:'0.6rem', border:'none', cursor:'pointer', fontWeight:600, fontSize:'0.9rem',
+                  background: view === tab ? 'var(--primary)' : 'transparent',
+                  color:      view === tab ? '#fff' : 'var(--text-muted)',
+                  transition: 'all 0.2s',
+                }}>
+                {tab === 'login' ? '🔓 Login' : '🚀 Sign Up'}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Dynamic panel */}
         {view === 'forgot'     && <ForgotPasswordPanel onBack={() => setView('login')} />}
         {view === 'changeuser' && <ChangeUsernamePanel onBack={() => setView('login')} />}
+        {view === 'signup'     && <SignUpPanel onSwitchToLogin={() => setView('login')} />}
 
         {view === 'login' && (
           <>

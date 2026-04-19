@@ -104,6 +104,48 @@ def change_username_route(body: ChangeUsernameRequest):
     auth_module.change_username(body.current_username, body.password, body.new_username)
     return {"message": "Username updated successfully. Please log in with your new username."}
 
+class SignupRequest(BaseModel):
+    username: str
+    password: str
+    confirm_password: str
+    department_id: str
+    display_name: Optional[str] = ""
+
+@app.post("/auth/signup", response_model=LoginResponse)
+def signup(body: SignupRequest):
+    if body.password != body.confirm_password:
+        raise HTTPException(status_code=400, detail="Passwords do not match")
+    if len(body.username.strip()) < 3:
+        raise HTTPException(status_code=400, detail="Username must be at least 3 characters")
+    new_user = auth_module.register_user(
+        body.username, body.password, body.department_id, body.display_name or ""
+    )
+    token = auth_module.create_access_token(new_user)
+    return LoginResponse(
+        access_token=token,
+        department_id=new_user["department_id"],
+        display_name=new_user.get("display_name", new_user["username"]),
+        role=new_user["role"],
+        grid_challenge_1=auth_module.GRID_CHALLENGE_1,
+        grid_challenge_2=auth_module.GRID_CHALLENGE_2,
+    )
+
+class GoogleAuthRequest(BaseModel):
+    credential: str   # Google ID token from GSI
+
+@app.post("/auth/google", response_model=LoginResponse)
+def google_auth(body: GoogleAuthRequest):
+    user = auth_module.google_login(body.credential)
+    token = auth_module.create_access_token(user)
+    return LoginResponse(
+        access_token=token,
+        department_id=user["department_id"],
+        display_name=user.get("display_name", user["username"]),
+        role=user["role"],
+        grid_challenge_1=auth_module.GRID_CHALLENGE_1,
+        grid_challenge_2=auth_module.GRID_CHALLENGE_2,
+    )
+
 # ── Protected Data Routes ──────────────────────────────────────────────────────
 # All routes below require a valid Bearer token.
 

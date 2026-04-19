@@ -45,8 +45,8 @@ GRID_VALUE_2      = os.getenv("GRID_VALUE_2", "").strip().upper()
 # Each entry: { "username": "...", "password": "...", "department_id": "...", "role": "staff|admin" }
 
 _DEFAULT_STAFF = [
-    {"username": "admin",      "password": "admin123",  "department_id": "admin",  "role": "admin"},
-    {"username": "hod_cse",    "password": "vims@2024", "department_id": "cse",    "role": "staff"},
+    {"username": "admin",      "password": "admin123",  "department_id": "admin",  "role": "admin", "display_name": "Administrator"},
+    {"username": "hod_cse",    "password": "vims@2024", "department_id": "cse",    "role": "staff", "display_name": "HOD - CSE"},
 ]
 
 def _load_staff():
@@ -57,6 +57,9 @@ def _load_staff():
     return _DEFAULT_STAFF
 
 STAFF_USERS = _load_staff()
+
+# Google OAuth
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -158,3 +161,62 @@ def change_username(old_username: str, password: str, new_username: str) -> None
     user["username"] = new_username.strip()
     _save_staff(users)
 
+
+def register_user(username: str, password: str, department_id: str, display_name: str = "") -> dict:
+    """Create a new staff account and persist it."""
+    users = list(STAFF_USERS)
+    if any(u["username"].lower() == username.lower() for u in users):
+        raise HTTPException(status_code=409, detail="Username already exists. Please choose another.")
+    if len(password.strip()) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    new_user = {
+        "username":      username.strip(),
+        "password":      password.strip(),
+        "department_id": department_id.strip().lower().replace(" ", "_"),
+        "role":          "staff",
+        "display_name":  display_name.strip() or username.strip(),
+    }
+    users.append(new_user)
+    _save_staff(users)
+    return new_user
+
+
+def google_login(id_token_str: str) -> dict:
+    """
+    Verify a Google ID token, then find or auto-create the staff account.
+    Requires GOOGLE_CLIENT_ID in .env.
+    """
+    if not GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=501, detail="Google Sign-In is not configured on this server")
+    try:
+        from google.oauth2 import id_token as google_id_token
+        from google.auth.transport import requests as google_requests
+        id_info = google_id_token.verify_oauth2_token(
+            id_token_str, google_requests.Request(), GOOGLE_CLIENT_ID
+        )
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Google token invalid: {e}")
+
+    email = id_info.get("email", "")
+    name  = id_info.get("name", email.split("@")[0])
+    # Use email prefix as username
+    username = email.split("@")[0].replace(".", "_")
+    dept_id  = username  # each Google user is their own department partition
+
+    # Find or auto-create
+    users = list(STAFF_USERS)
+    user  = next((u for u in users if u.get("google_email") == email), None)
+    if not user:
+        user = next((u for u in users if u["username"].lower() == username.lower()), None)
+    if not user:
+        user = {
+            "username":      username,
+            "password":      "",
+            "department_id": dept_id,
+            "role":          "staff",
+            "display_name":  name,
+            "google_email":  email,
+        }
+        users.append(user)
+        _save_staff(users)
+    return user

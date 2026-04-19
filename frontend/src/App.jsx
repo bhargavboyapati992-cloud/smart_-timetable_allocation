@@ -33,8 +33,136 @@ function AuthProvider({ children }) {
 }
 
 // ── VIMS Login Page ────────────────────────────────────────────────────────────
+// ── Shared link button style ───────────────────────────────────────────────────
+const linkBtn = {
+  background: 'none', border: 'none', cursor: 'pointer',
+  color: 'var(--primary)', fontSize: '0.8rem', textDecoration: 'underline', padding: 0
+};
+
+// ── Forgot Password Panel ─────────────────────────────────────────────────────
+function ForgotPasswordPanel({ onBack }) {
+  const [username, setUsername]   = useState('');
+  const [newPass, setNewPass]     = useState('');
+  const [confirm, setConfirm]     = useState('');
+  const [msg, setMsg]             = useState('');
+  const [error, setError]         = useState('');
+  const [loading, setLoading]     = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(''); setMsg('');
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, new_password: newPass, confirm_password: confirm }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.detail || 'Failed'); }
+      else { setMsg(data.message); }
+    } catch { setError('Server unreachable.'); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div>
+      <h3 style={{ color: 'var(--primary)', marginBottom: '1rem' }}>🔑 Reset Password</h3>
+      {error && <div style={{ color:'var(--acc-red)', background:'rgba(239,68,68,0.1)', borderRadius:'8px', padding:'0.6rem 1rem', marginBottom:'0.75rem', fontSize:'0.85rem' }}>⚠️ {error}</div>}
+      {msg   && <div style={{ color:'#22c55e',       background:'rgba(34,197,94,0.1)',  borderRadius:'8px', padding:'0.6rem 1rem', marginBottom:'0.75rem', fontSize:'0.85rem' }}>✅ {msg}</div>}
+      {!msg && (
+        <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:'0.85rem' }}>
+          <div className="form-group">
+            <label>Your Username</label>
+            <input type="text" className="input-field" placeholder="e.g. hod_cse"
+              value={username} onChange={e => setUsername(e.target.value)} required />
+          </div>
+          <div className="form-group">
+            <label>New Password</label>
+            <input type="password" className="input-field" placeholder="Min. 6 characters"
+              value={newPass} onChange={e => setNewPass(e.target.value)} required />
+          </div>
+          <div className="form-group">
+            <label>Confirm New Password</label>
+            <input type="password" className="input-field" placeholder="Repeat new password"
+              value={confirm} onChange={e => setConfirm(e.target.value)} required />
+          </div>
+          <button type="submit" className="btn btn-primary" disabled={loading} style={{ width:'100%' }}>
+            {loading ? '⏳ Saving...' : '🔒 Set New Password'}
+          </button>
+        </form>
+      )}
+      <div style={{ textAlign:'center', marginTop:'1rem' }}>
+        <button style={linkBtn} onClick={onBack}>← Back to Login</button>
+      </div>
+    </div>
+  );
+}
+
+// ── Change Username Panel ──────────────────────────────────────────────────────
+function ChangeUsernamePanel({ onBack }) {
+  const [currentUser, setCurrentUser] = useState('');
+  const [password, setPassword]       = useState('');
+  const [newUser, setNewUser]         = useState('');
+  const [msg, setMsg]                 = useState('');
+  const [error, setError]             = useState('');
+  const [loading, setLoading]         = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(''); setMsg('');
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/auth/change-username`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ current_username: currentUser, password, new_username: newUser }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.detail || 'Failed'); }
+      else { setMsg(data.message); }
+    } catch { setError('Server unreachable.'); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div>
+      <h3 style={{ color: 'var(--primary)', marginBottom: '1rem' }}>✏️ Change Username</h3>
+      {error && <div style={{ color:'var(--acc-red)', background:'rgba(239,68,68,0.1)', borderRadius:'8px', padding:'0.6rem 1rem', marginBottom:'0.75rem', fontSize:'0.85rem' }}>⚠️ {error}</div>}
+      {msg   && <div style={{ color:'#22c55e',       background:'rgba(34,197,94,0.1)',  borderRadius:'8px', padding:'0.6rem 1rem', marginBottom:'0.75rem', fontSize:'0.85rem' }}>✅ {msg}</div>}
+      {!msg && (
+        <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:'0.85rem' }}>
+          <div className="form-group">
+            <label>Current Username</label>
+            <input type="text" className="input-field" placeholder="Your existing username"
+              value={currentUser} onChange={e => setCurrentUser(e.target.value)} required />
+          </div>
+          <div className="form-group">
+            <label>Current Password</label>
+            <input type="password" className="input-field" placeholder="Verify with your password"
+              value={password} onChange={e => setPassword(e.target.value)} required />
+          </div>
+          <div className="form-group">
+            <label>New Username</label>
+            <input type="text" className="input-field" placeholder="Min. 3 characters"
+              value={newUser} onChange={e => setNewUser(e.target.value)} required />
+          </div>
+          <button type="submit" className="btn btn-primary" disabled={loading} style={{ width:'100%' }}>
+            {loading ? '⏳ Saving...' : '✏️ Update Username'}
+          </button>
+        </form>
+      )}
+      <div style={{ textAlign:'center', marginTop:'1rem' }}>
+        <button style={linkBtn} onClick={onBack}>← Back to Login</button>
+      </div>
+    </div>
+  );
+}
+
+// ── Login Page ─────────────────────────────────────────────────────────────────
 function LoginPage() {
   const { login } = useAuth();
+  const [view, setView]           = useState('login'); // 'login' | 'forgot' | 'changeuser'
   const [username, setUsername]   = useState('');
   const [password, setPassword]   = useState('');
   const [grid1, setGrid1]         = useState('');
@@ -74,7 +202,7 @@ function LoginPage() {
     <div style={{ height:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg)' }}>
       <div className="glass-panel" style={{ width:'100%', maxWidth:'440px' }}>
 
-        {/* Header */}
+        {/* Header — always visible */}
         <div style={{ textAlign:'center', marginBottom:'2rem' }}>
           <div style={{
             width:'64px', height:'64px', borderRadius:'16px', margin:'0 auto 1rem',
@@ -85,56 +213,70 @@ function LoginPage() {
           <p style={{ color:'var(--text-muted)', fontSize:'0.85rem' }}>Timetable Allocation System — Authorised Access Only</p>
         </div>
 
-        {error && (
-          <div style={{ color:'var(--acc-red)', background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)',
-            borderRadius:'8px', padding:'0.75rem 1rem', marginBottom:'1.25rem', fontSize:'0.875rem' }}>
-            ⚠️ {error}
-          </div>
-        )}
+        {/* Dynamic panel */}
+        {view === 'forgot'     && <ForgotPasswordPanel onBack={() => setView('login')} />}
+        {view === 'changeuser' && <ChangeUsernamePanel onBack={() => setView('login')} />}
 
-        <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:'1rem' }}>
-          <div className="form-group">
-            <label>Staff Username</label>
-            <input type="text" className="input-field" placeholder="e.g. hod_cse"
-              value={username} onChange={e => setUsername(e.target.value)} required autoFocus />
-          </div>
-
-          <div className="form-group">
-            <label>Password</label>
-            <input type="password" className="input-field" placeholder="Enter your password"
-              value={password} onChange={e => setPassword(e.target.value)} required />
-          </div>
-
-          {challenges.grid_enabled && (
-            <div style={{ background:'rgba(124,58,237,0.08)', borderRadius:'10px', padding:'1rem', border:'1px solid rgba(124,58,237,0.2)' }}>
-              <p style={{ color:'var(--text-muted)', fontSize:'0.8rem', marginBottom:'0.75rem' }}>
-                🔐 Enter your grid card values as shown below
-              </p>
-              <div style={{ display:'flex', gap:'1rem' }}>
-                <div className="form-group" style={{ flex:1, margin:0 }}>
-                  <label>Grid Cell <strong style={{color:'var(--primary)'}}>{challenges.grid_challenge_1}</strong></label>
-                  <input type="text" className="input-field" placeholder="e.g. 7X"
-                    value={grid1} onChange={e => setGrid1(e.target.value)} maxLength={4} style={{textTransform:'uppercase'}} />
-                </div>
-                <div className="form-group" style={{ flex:1, margin:0 }}>
-                  <label>Grid Cell <strong style={{color:'var(--primary)'}}>{challenges.grid_challenge_2}</strong></label>
-                  <input type="text" className="input-field" placeholder="e.g. P3"
-                    value={grid2} onChange={e => setGrid2(e.target.value)} maxLength={4} style={{textTransform:'uppercase'}} />
-                </div>
+        {view === 'login' && (
+          <>
+            {error && (
+              <div style={{ color:'var(--acc-red)', background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)',
+                borderRadius:'8px', padding:'0.75rem 1rem', marginBottom:'1.25rem', fontSize:'0.875rem' }}>
+                ⚠️ {error}
               </div>
+            )}
+
+            <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:'1rem' }}>
+              <div className="form-group">
+                <label>Staff Username</label>
+                <input type="text" className="input-field" placeholder="e.g. hod_cse"
+                  value={username} onChange={e => setUsername(e.target.value)} required autoFocus />
+              </div>
+
+              <div className="form-group">
+                <label>Password</label>
+                <input type="password" className="input-field" placeholder="Enter your password"
+                  value={password} onChange={e => setPassword(e.target.value)} required />
+              </div>
+
+              {challenges.grid_enabled && (
+                <div style={{ background:'rgba(124,58,237,0.08)', borderRadius:'10px', padding:'1rem', border:'1px solid rgba(124,58,237,0.2)' }}>
+                  <p style={{ color:'var(--text-muted)', fontSize:'0.8rem', marginBottom:'0.75rem' }}>
+                    🔐 Enter your grid card values as shown below
+                  </p>
+                  <div style={{ display:'flex', gap:'1rem' }}>
+                    <div className="form-group" style={{ flex:1, margin:0 }}>
+                      <label>Grid Cell <strong style={{color:'var(--primary)'}}>{challenges.grid_challenge_1}</strong></label>
+                      <input type="text" className="input-field" placeholder="e.g. 7X"
+                        value={grid1} onChange={e => setGrid1(e.target.value)} maxLength={4} style={{textTransform:'uppercase'}} />
+                    </div>
+                    <div className="form-group" style={{ flex:1, margin:0 }}>
+                      <label>Grid Cell <strong style={{color:'var(--primary)'}}>{challenges.grid_challenge_2}</strong></label>
+                      <input type="text" className="input-field" placeholder="e.g. P3"
+                        value={grid2} onChange={e => setGrid2(e.target.value)} maxLength={4} style={{textTransform:'uppercase'}} />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <button type="submit" className="btn btn-primary"
+                style={{ width:'100%', marginTop:'0.5rem', padding:'0.85rem', fontSize:'1rem' }}
+                disabled={loading}>
+                {loading ? '⏳ Verifying...' : '🔓 Login'}
+              </button>
+            </form>
+
+            {/* ── Links row ── */}
+            <div style={{ display:'flex', justifyContent:'space-between', marginTop:'1.25rem' }}>
+              <button style={linkBtn} onClick={() => setView('forgot')}>Forgot Password?</button>
+              <button style={linkBtn} onClick={() => setView('changeuser')}>Change Username</button>
             </div>
-          )}
 
-          <button type="submit" className="btn btn-primary"
-            style={{ width:'100%', marginTop:'0.5rem', padding:'0.85rem', fontSize:'1rem' }}
-            disabled={loading}>
-            {loading ? '⏳ Verifying...' : '🔓 Login'}
-          </button>
-        </form>
-
-        <p style={{ textAlign:'center', color:'var(--text-muted)', fontSize:'0.75rem', marginTop:'1.5rem' }}>
-          Restricted to authorised VIMS staff only.<br/>Contact IT admin for access issues.
-        </p>
+            <p style={{ textAlign:'center', color:'var(--text-muted)', fontSize:'0.75rem', marginTop:'1rem' }}>
+              Restricted to authorised VIMS staff only.<br/>Contact IT admin for access issues.
+            </p>
+          </>
+        )}
       </div>
     </div>
   );

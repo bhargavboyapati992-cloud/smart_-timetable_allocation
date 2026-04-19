@@ -120,3 +120,41 @@ def require_auth(credentials: Optional[HTTPAuthorizationCredentials] = Security(
     if credentials is None:
         raise HTTPException(status_code=401, detail="Not authenticated")
     return decode_token(credentials.credentials)
+
+
+# ── Account Mutation Helpers ───────────────────────────────────────────────────
+
+_CONFIG_PATH = Path(__file__).parent / "staff_config.json"
+
+def _save_staff(users: list):
+    """Persist STAFF_USERS back to staff_config.json and refresh in-memory list."""
+    global STAFF_USERS
+    with open(_CONFIG_PATH, "w") as f:
+        json.dump(users, f, indent=2)
+    STAFF_USERS = users
+
+
+def change_password(username: str, new_password: str) -> None:
+    """Update password for the given username. Raises HTTPException if not found."""
+    users = list(STAFF_USERS)
+    user = next((u for u in users if u["username"].lower() == username.lower()), None)
+    if not user:
+        raise HTTPException(status_code=404, detail="Username not found")
+    user["password"] = new_password.strip()
+    _save_staff(users)
+
+
+def change_username(old_username: str, password: str, new_username: str) -> None:
+    """Rename a username after verifying the current password."""
+    users = list(STAFF_USERS)
+    user = next((u for u in users if u["username"].lower() == old_username.lower()), None)
+    if not user:
+        raise HTTPException(status_code=401, detail="Current username or password is incorrect")
+    if not verify_password(password, user["password"]):
+        raise HTTPException(status_code=401, detail="Current username or password is incorrect")
+    # Ensure new username is not already taken
+    if any(u["username"].lower() == new_username.lower() for u in users if u is not user):
+        raise HTTPException(status_code=409, detail="That username is already taken")
+    user["username"] = new_username.strip()
+    _save_staff(users)
+

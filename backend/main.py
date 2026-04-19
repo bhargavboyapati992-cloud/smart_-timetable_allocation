@@ -78,6 +78,32 @@ def logout():
     """Frontend should delete its token on logout. JWT is stateless."""
     return {"message": "Logged out successfully"}
 
+class ForgotPasswordRequest(BaseModel):
+    username: str
+    new_password: str
+    confirm_password: str
+
+@app.post("/auth/forgot-password")
+def forgot_password(body: ForgotPasswordRequest):
+    if body.new_password != body.confirm_password:
+        raise HTTPException(status_code=400, detail="Passwords do not match")
+    if len(body.new_password.strip()) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    auth_module.change_password(body.username, body.new_password)
+    return {"message": "Password updated successfully. Please log in with your new password."}
+
+class ChangeUsernameRequest(BaseModel):
+    current_username: str
+    password: str
+    new_username: str
+
+@app.post("/auth/change-username")
+def change_username_route(body: ChangeUsernameRequest):
+    if len(body.new_username.strip()) < 3:
+        raise HTTPException(status_code=400, detail="Username must be at least 3 characters")
+    auth_module.change_username(body.current_username, body.password, body.new_username)
+    return {"message": "Username updated successfully. Please log in with your new username."}
+
 # ── Protected Data Routes ──────────────────────────────────────────────────────
 # All routes below require a valid Bearer token.
 

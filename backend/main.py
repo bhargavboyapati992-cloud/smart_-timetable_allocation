@@ -1,0 +1,157 @@
+from fastapi import FastAPI, Depends, HTTPException, Header
+from sqlalchemy.orm import Session
+from typing import List
+
+import models
+import schemas
+import crud
+import solver_ortools
+from fastapi.middleware.cors import CORSMiddleware
+from database import SessionLocal, engine
+
+models.Base.metadata.create_all(bind=engine)
+
+app = FastAPI(title="Timetable Allocation API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+@app.post("/teachers/", response_model=schemas.Teacher)
+def create_teacher(teacher: schemas.TeacherCreate, db: Session = Depends(get_db)):
+    return crud.create_teacher(db=db, teacher=teacher)
+
+@app.get("/teachers/", response_model=List[schemas.Teacher])
+def read_teachers(skip: int = 0, limit: int = 100, x_department_id: str = Header(...), db: Session = Depends(get_db)):
+    return crud.get_teachers(db, department_id=x_department_id, skip=skip, limit=limit)
+
+@app.post("/rooms/", response_model=schemas.Room)
+def create_room(room: schemas.RoomCreate, db: Session = Depends(get_db)):
+    return crud.create_room(db=db, room=room)
+
+@app.get("/rooms/", response_model=List[schemas.Room])
+def read_rooms(skip: int = 0, limit: int = 100, x_department_id: str = Header(...), db: Session = Depends(get_db)):
+    return crud.get_rooms(db, department_id=x_department_id, skip=skip, limit=limit)
+
+@app.post("/subjects/", response_model=schemas.Subject)
+def create_subject(subject: schemas.SubjectCreate, db: Session = Depends(get_db)):
+    return crud.create_subject(db=db, subject=subject)
+
+@app.get("/subjects/", response_model=List[schemas.Subject])
+def read_subjects(skip: int = 0, limit: int = 100, x_department_id: str = Header(...), db: Session = Depends(get_db)):
+    return crud.get_subjects(db, department_id=x_department_id, skip=skip, limit=limit)
+
+@app.get("/config/", response_model=schemas.ConstraintsConfig)
+def read_config(x_department_id: str = Header(...), db: Session = Depends(get_db)):
+    return crud.get_config(db, department_id=x_department_id)
+
+@app.put("/config/", response_model=schemas.ConstraintsConfig)
+def update_config(config: schemas.ConstraintsConfig, x_department_id: str = Header(...), db: Session = Depends(get_db)):
+    return crud.update_config(db, config, department_id=x_department_id)
+
+@app.post("/tas/", response_model=schemas.TeachingAssistant)
+def create_ta(ta: schemas.TeachingAssistantCreate, db: Session = Depends(get_db)):
+    return crud.create_ta(db=db, ta=ta)
+
+@app.get("/tas/", response_model=List[schemas.TeachingAssistant])
+def read_tas(skip: int = 0, limit: int = 100, x_department_id: str = Header(...), db: Session = Depends(get_db)):
+    return crud.get_tas(db, department_id=x_department_id, skip=skip, limit=limit)
+
+@app.post("/generate")
+def generate_schedule(solverType: str = "ortools", x_department_id: str = Header(...), db: Session = Depends(get_db)):
+    config = crud.get_config(db, x_department_id)
+    
+    db_rooms = db.query(models.Room).filter(models.Room.department_id == x_department_id).all()
+    rooms_data = [{"id": r.id, "room_type": r.room_type, "name": r.name} for r in db_rooms]
+    
+    db_mappings = db.query(models.SectionSubjectMapping).filter(models.SectionSubjectMapping.department_id == x_department_id).all()
+    mappings_data = []
+    
+    db_subjects = db.query(models.Subject).filter(models.Subject.department_id == x_department_id).all()
+    subjects_info = {sub.id: {"hours": sub.hours_per_week, "type": sub.type, "name": sub.name} for sub in db_subjects}
+    
+    for m in db_mappings:
+        t_ids = [m.teacher_id]
+        if m.secondary_teacher_id:
+            t_ids.append(m.secondary_teacher_id)
+            
+        mappings_data.append({
+            "m_id": m.id,
+            "section_id": m.section_id,
+            "subject_id": m.subject_id,
+            "teacher_ids": t_ids
+        })
+        
+    if not mappings_data:
+        db_teachers = db.query(models.Teacher).filter(models.Teacher.department_id == x_department_id).all()
+        db_tas = db.query(models.TeachingAssistant).filter(models.TeachingAssistant.department_id == x_department_id).all()
+        
+        if db_subjects and db_teachers:
+            import itertools
+            import re
+            ta_cycle = itertools.cycle(db_tas) if db_tas else None
+            unassigned_subjects = list(db_subjects)
+            
+            # First pass: Explicit assignments from parentheses e.g. "Prof. Smith (physics)"
+            for t in db_teachers:
+                match = re.search(r'\((.*?)\)', t.name)
+                assigned_subject_name = match.group(1).strip().lower() if match else None
+                
+                if assigned_subject_name:
+                    for sub in list(unassigned_subjects):
+                        if assigned_subject_name == sub.name.lower() or assigned_subject_name in sub.name.lower():
+                            is_lab = sub.type.lower() in ["lab", "practical", "p"]
+                            t_ids = [t.id]
+                            if is_lab and ta_cycle:
+                                t_ids.append(next(ta_cycle).id)
+                                
+                            mappings_data.append({
+                                "m_id": len(mappings_data) + 1,
+                                "section_id": 1,
+                                "subject_id": sub.id,
+                                "teacher_ids": t_ids
+                            })
+                            unassigned_subjects.remove(sub)
+
+            # Second pass: Fallback random mapping for remaining subjects
+            if unassigned_subjects:
+                teacher_cycle = itertools.cycle(db_teachers)
+                for sub in unassigned_subjects:
+                    t = next(teacher_cycle)
+                    is_lab = sub.type.lower() in ["lab", "practical", "p"]
+                    t_ids = [t.id]
+                    if is_lab and ta_cycle:
+                        t_ids.append(next(ta_cycle).id)
+                        
+                    mappings_data.append({
+                        "m_id": len(mappings_data) + 1,
+                        "section_id": 1,
+                        "subject_id": sub.id,
+                        "teacher_ids": t_ids
+                    })
+        
+    if solverType == "ortools":
+        res = solver_ortools.generate_timetable(
+            days=config.days_per_week,
+            periods=config.periods_per_day,
+            rooms=rooms_data,
+            mappings=mappings_data,
+            subjects_info=subjects_info,
+            max_consec=config.max_consecutive_classes
+        )
+        return res
+    else:
+        # Fallback to FET if requested
+        raise HTTPException(status_code=501, detail="FET solver integration pending")

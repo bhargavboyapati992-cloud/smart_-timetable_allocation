@@ -1,0 +1,20 @@
+# Python Virtual Environment
+venv/
+.env
+
+# Database 
+*.db
+*.sqlite
+*.sqlite3
+
+# Node Modules
+frontend/node_modules/
+frontend/dist/
+
+# Mac / Windows system files
+.DS_Store
+Thumbs.db
+
+# Any other Python artifacts
+__pycache__/
+*.pyc

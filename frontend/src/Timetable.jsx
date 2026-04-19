@@ -32,9 +32,14 @@ export default function Timetable({ departmentId }) {
   const handleGenerate = () => {
     setGenerating(true);
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const session = JSON.parse(sessionStorage.getItem('vims_session') || 'null');
+    const token = session?.access_token || '';
     fetch(`${API_URL}/generate?solverType=ortools`, {
         method: 'POST',
-        headers: { 'X-Department-ID': departmentId }
+        headers: {
+          'X-Department-ID': departmentId,
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        }
     })
     .then(res => res.json())
     .then(data => {

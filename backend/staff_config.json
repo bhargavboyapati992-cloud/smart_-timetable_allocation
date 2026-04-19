@@ -1,0 +1,23 @@
+[
+  {
+    "username": "hod_cse",
+    "password": "vims@2024",
+    "department_id": "cse",
+    "role": "staff",
+    "display_name": "HOD - Computer Science"
+  },
+  {
+    "username": "hod_ece",
+    "password": "vims@2024",
+    "department_id": "ece",
+    "role": "staff",
+    "display_name": "HOD - Electronics"
+  },
+  {
+    "username": "admin",
+    "password": "admin@vims123",
+    "department_id": "admin",
+    "role": "admin",
+    "display_name": "VIMS Administrator"
+  }
+]

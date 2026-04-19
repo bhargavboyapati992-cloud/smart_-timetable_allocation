@@ -1,17 +1,25 @@
 import React, { useState, useEffect } from 'react';
 
+function getAuthHeaders(departmentId, extra = {}) {
+    const session = JSON.parse(sessionStorage.getItem('vims_session') || 'null');
+    const token = session?.access_token || '';
+    return {
+        'X-Department-ID': departmentId,
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        ...extra,
+    };
+}
+
 function BaseGrid({ title, endpoint, fields, departmentId }) {
     const [data, setData] = useState([]);
     const [formData, setFormData] = useState({});
-    
-    // Default config values passed to simplify structure
-    const headers = { 'X-Department-ID': departmentId, 'Content-Type': 'application/json' };
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
     const loadData = () => {
-        fetch(`${API_URL}/${endpoint}/`, { headers: { 'X-Department-ID': departmentId } })
+        fetch(`${API_URL}/${endpoint}/`, { headers: getAuthHeaders(departmentId) })
             .then(res => res.json())
-            .then(res => setData(res))
+            .then(res => setData(Array.isArray(res) ? res : []))
             .catch(console.error);
     }
 
@@ -22,7 +30,7 @@ function BaseGrid({ title, endpoint, fields, departmentId }) {
         const payload = { ...formData, department_id: departmentId };
         fetch(`${API_URL}/${endpoint}/`, {
             method: 'POST',
-            headers,
+            headers: getAuthHeaders(departmentId),
             body: JSON.stringify(payload)
         })
         .then(res => res.json())

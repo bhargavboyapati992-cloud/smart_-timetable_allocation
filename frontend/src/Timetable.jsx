@@ -159,7 +159,6 @@ export default function Timetable({ departmentId }) {
           )}
         </div>
       </div>
-      </div>
 
       {(schedule || generating) ? (
         <div className="timetable-wrapper">

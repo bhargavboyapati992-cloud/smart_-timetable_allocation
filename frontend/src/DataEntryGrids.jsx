@@ -17,7 +17,7 @@ function BaseGrid({ title, endpoint, fields, departmentId }) {
     const [formData, setFormData] = useState({});
     const [editId, setEditId] = useState(null);
     const [openMenuId, setOpenMenuId] = useState(null);
-    const API_URL = import.meta.env.VITE_API_URL || 'https://tame-foxes-unite.loca.lt';
+    const API_URL = import.meta.env.VITE_API_URL || 'https://weak-jokes-guess.loca.lt';
 
     const loadData = () => {
         fetch(`${API_URL}/${endpoint}/`, { headers: getAuthHeaders(departmentId) })

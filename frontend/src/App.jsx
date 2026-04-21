@@ -4,7 +4,7 @@ import Timetable from './Timetable';
 import SetupWizard from './SetupWizard';
 import { TeachersGrid, RoomsGrid, SubjectsGrid, TAGrid } from './DataEntryGrids';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://tame-foxes-unite.loca.lt';
+const API_URL = import.meta.env.VITE_API_URL || 'https://weak-jokes-guess.loca.lt';
 
 // ── Auth Context ───────────────────────────────────────────────────────────────
 const AuthContext = createContext(null);

@@ -10,7 +10,7 @@ export default function SetupWizard({ onComplete, departmentId }) {
 
     const [loading, setLoading] = useState(false);
     
-    const API_URL = import.meta.env.VITE_API_URL || 'https://shy-mangos-attend.loca.lt';
+    const API_URL = import.meta.env.VITE_API_URL || 'https://entering-pork-tables-river.trycloudflare.com';
     
     useEffect(() => {
         // Fetch existing config if any

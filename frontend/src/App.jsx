@@ -4,7 +4,7 @@ import Timetable from './Timetable';
 import SetupWizard from './SetupWizard';
 import { TeachersGrid, RoomsGrid, SubjectsGrid, TAGrid } from './DataEntryGrids';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://shy-mangos-attend.loca.lt';
+const API_URL = import.meta.env.VITE_API_URL || 'https://entering-pork-tables-river.trycloudflare.com';
 
 // ── Auth Context ───────────────────────────────────────────────────────────────
 const AuthContext = createContext(null);

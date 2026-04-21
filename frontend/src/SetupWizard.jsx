@@ -10,12 +10,12 @@ export default function SetupWizard({ onComplete, departmentId }) {
 
     const [loading, setLoading] = useState(false);
     
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const API_URL = import.meta.env.VITE_API_URL || 'https://tame-foxes-unite.loca.lt';
     
     useEffect(() => {
         // Fetch existing config if any
         fetch(`${API_URL}/config/`, {
-            headers: { 'X-Department-ID': departmentId }
+            headers: { 'X-Department-ID': departmentId, 'Bypass-Tunnel-Reminder': 'true' }
         })
         .then(res => res.json())
         .then(data => {
@@ -34,7 +34,8 @@ export default function SetupWizard({ onComplete, departmentId }) {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                'X-Department-ID': departmentId
+                'X-Department-ID': departmentId,
+                'Bypass-Tunnel-Reminder': 'true'
             },
             body: JSON.stringify(config)
         })

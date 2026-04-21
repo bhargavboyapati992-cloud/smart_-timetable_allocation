@@ -4,7 +4,7 @@ import Timetable from './Timetable';
 import SetupWizard from './SetupWizard';
 import { TeachersGrid, RoomsGrid, SubjectsGrid, TAGrid } from './DataEntryGrids';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = import.meta.env.VITE_API_URL || 'https://tame-foxes-unite.loca.lt';
 
 // ── Auth Context ───────────────────────────────────────────────────────────────
 const AuthContext = createContext(null);
@@ -22,7 +22,7 @@ function AuthProvider({ children }) {
   const logout = () => {
     sessionStorage.removeItem('vims_session');
     setSession(null);
-    fetch(`${API_URL}/auth/logout`, { method: 'POST' }).catch(() => {});
+    fetch(`${API_URL}/auth/logout`, { method: 'POST', headers: { 'Bypass-Tunnel-Reminder': 'true' } }).catch(() => {});
   };
 
   return (
@@ -55,7 +55,7 @@ function ForgotPasswordPanel({ onBack }) {
     try {
       const res = await fetch(`${API_URL}/auth/forgot-password`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Bypass-Tunnel-Reminder': 'true' },
         body: JSON.stringify({ username, new_password: newPass, confirm_password: confirm }),
       });
       const data = await res.json();
@@ -115,7 +115,7 @@ function ChangeUsernamePanel({ onBack }) {
     try {
       const res = await fetch(`${API_URL}/auth/change-username`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Bypass-Tunnel-Reminder': 'true' },
         body: JSON.stringify({ current_username: currentUser, password, new_username: newUser }),
       });
       const data = await res.json();
@@ -201,7 +201,7 @@ function SignUpPanel({ onSuccess, onSwitchToLogin }) {
     try {
       const res = await fetch(`${API_URL}/auth/google`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Bypass-Tunnel-Reminder': 'true' },
         body: JSON.stringify({ credential }),
       });
       const data = await res.json();
@@ -219,7 +219,7 @@ function SignUpPanel({ onSuccess, onSwitchToLogin }) {
     try {
       const res = await fetch(`${API_URL}/auth/signup`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Bypass-Tunnel-Reminder': 'true' },
         body: JSON.stringify({
           username, password, confirm_password: confirm,
           department_id: deptId, display_name: displayName
@@ -308,7 +308,7 @@ function LoginPage() {
     try {
       const res = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Bypass-Tunnel-Reminder': 'true' },
         body: JSON.stringify({ username, password, grid_value_1: grid1, grid_value_2: grid2 }),
       });
       const data = await res.json();

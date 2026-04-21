@@ -6,6 +6,7 @@ function getAuthHeaders(departmentId, extra = {}) {
     return {
         'X-Department-ID': departmentId,
         'Content-Type': 'application/json',
+        'Bypass-Tunnel-Reminder': 'true',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         ...extra,
     };
@@ -16,7 +17,7 @@ function BaseGrid({ title, endpoint, fields, departmentId }) {
     const [formData, setFormData] = useState({});
     const [editId, setEditId] = useState(null);
     const [openMenuId, setOpenMenuId] = useState(null);
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const API_URL = import.meta.env.VITE_API_URL || 'https://tame-foxes-unite.loca.lt';
 
     const loadData = () => {
         fetch(`${API_URL}/${endpoint}/`, { headers: getAuthHeaders(departmentId) })

@@ -27,5 +27,12 @@
     "role": "staff",
     "display_name": "Bhargav Boyapati",
     "google_email": "bhargavboyapati992@gmail.com"
+  },
+  {
+    "username": "bhargavboyapati",
+    "password": "bhargav",
+    "department_id": "acse",
+    "role": "staff",
+    "display_name": "bhargav"
   }
 ]

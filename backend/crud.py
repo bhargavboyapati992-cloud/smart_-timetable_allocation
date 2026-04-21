@@ -62,3 +62,20 @@ def create_ta(db: Session, ta: schemas.TeachingAssistantCreate):
     db.commit()
     db.refresh(db_ta)
     return db_ta
+
+def update_item(db: Session, model_class, item_id: int, item_data: dict, department_id: str):
+    db_item = db.query(model_class).filter(model_class.id == item_id, model_class.department_id == department_id).first()
+    if db_item:
+        for key, value in item_data.items():
+            setattr(db_item, key, value)
+        db.commit()
+        db.refresh(db_item)
+    return db_item
+
+def delete_item(db: Session, model_class, item_id: int, department_id: str):
+    db_item = db.query(model_class).filter(model_class.id == item_id, model_class.department_id == department_id).first()
+    if db_item:
+        db.delete(db_item)
+        db.commit()
+        return True
+    return False

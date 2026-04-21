@@ -424,7 +424,7 @@ function LoginPage() {
 }
 
 // ── Sidebar ────────────────────────────────────────────────────────────────────
-function Sidebar() {
+function Sidebar({ departmentId, setDepartmentId }) {
   const location = useLocation();
   const path = location.pathname;
   const { session, logout } = useAuth();
@@ -457,7 +457,20 @@ function Sidebar() {
       <div style={{ marginTop:'auto', paddingTop:'2rem', borderTop:'1px solid var(--border)', marginTop:'2rem' }}>
         <p style={{ color:'var(--text-muted)', fontSize:'0.75rem' }}>Logged in as</p>
         <p style={{ color:'var(--primary)', fontWeight:600, fontSize:'0.9rem' }}>{session?.display_name}</p>
-        <p style={{ color:'var(--text-muted)', fontSize:'0.7rem', marginBottom:'0.75rem' }}>Dept: {session?.department_id?.toUpperCase()}</p>
+        
+        <div style={{ margin: '0.75rem 0' }}>
+          <label style={{ display: 'block', color:'var(--text-muted)', fontSize:'0.7rem', marginBottom: '4px' }}>
+            Active Department:
+          </label>
+          <input 
+            type="text" 
+            value={departmentId} 
+            onChange={e => setDepartmentId(e.target.value)}
+            className="input-field"
+            style={{ width: '100%', padding: '0.4rem', fontSize: '0.8rem', background: 'rgba(255,255,255,0.05)' }} 
+          />
+        </div>
+
         <button onClick={logout} className="btn" style={{
           width:'100%', background:'rgba(239,68,68,0.1)', color:'var(--acc-red)',
           border:'1px solid rgba(239,68,68,0.3)', padding:'0.4rem', borderRadius:'6px',
@@ -473,13 +486,13 @@ function Sidebar() {
 // ── Main App (post-login) ──────────────────────────────────────────────────────
 function MainApp() {
   const { session } = useAuth();
-  const departmentId = session?.department_id || '';
+  const [departmentId, setDepartmentId] = useState(session?.department_id || '');
 
   return (
     <Router>
       <div className="app-container">
         <div className="dashboard-grid">
-          <Sidebar />
+          <Sidebar departmentId={departmentId} setDepartmentId={setDepartmentId} />
           <main>
             <Routes>
               <Route path="/"          element={<Timetable departmentId={departmentId} />} />

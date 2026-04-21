@@ -157,6 +157,18 @@ def create_teacher(teacher: schemas.TeacherCreate, db: Session = Depends(get_db)
 def read_teachers(skip: int = 0, limit: int = 100, x_department_id: str = Header(...), db: Session = Depends(get_db), user=Depends(auth_module.require_auth)):
     return crud.get_teachers(db, department_id=x_department_id, skip=skip, limit=limit)
 
+@app.put("/teachers/{item_id}", response_model=schemas.Teacher)
+def update_teacher(item_id: int, teacher: schemas.TeacherCreate, x_department_id: str = Header(...), db: Session = Depends(get_db), user=Depends(auth_module.require_auth)):
+    updated = crud.update_item(db, models.Teacher, item_id, teacher.model_dump(), x_department_id)
+    if not updated: raise HTTPException(status_code=404, detail="Item not found")
+    return updated
+
+@app.delete("/teachers/{item_id}")
+def delete_teacher(item_id: int, x_department_id: str = Header(...), db: Session = Depends(get_db), user=Depends(auth_module.require_auth)):
+    if not crud.delete_item(db, models.Teacher, item_id, x_department_id):
+        raise HTTPException(status_code=404, detail="Item not found")
+    return {"status": "deleted"}
+
 @app.post("/rooms/", response_model=schemas.Room)
 def create_room(room: schemas.RoomCreate, db: Session = Depends(get_db), user=Depends(auth_module.require_auth)):
     return crud.create_room(db=db, room=room)
@@ -164,6 +176,18 @@ def create_room(room: schemas.RoomCreate, db: Session = Depends(get_db), user=De
 @app.get("/rooms/", response_model=List[schemas.Room])
 def read_rooms(skip: int = 0, limit: int = 100, x_department_id: str = Header(...), db: Session = Depends(get_db), user=Depends(auth_module.require_auth)):
     return crud.get_rooms(db, department_id=x_department_id, skip=skip, limit=limit)
+
+@app.put("/rooms/{item_id}", response_model=schemas.Room)
+def update_room(item_id: int, room: schemas.RoomCreate, x_department_id: str = Header(...), db: Session = Depends(get_db), user=Depends(auth_module.require_auth)):
+    updated = crud.update_item(db, models.Room, item_id, room.model_dump(), x_department_id)
+    if not updated: raise HTTPException(status_code=404, detail="Item not found")
+    return updated
+
+@app.delete("/rooms/{item_id}")
+def delete_room(item_id: int, x_department_id: str = Header(...), db: Session = Depends(get_db), user=Depends(auth_module.require_auth)):
+    if not crud.delete_item(db, models.Room, item_id, x_department_id):
+        raise HTTPException(status_code=404, detail="Item not found")
+    return {"status": "deleted"}
 
 @app.post("/subjects/", response_model=schemas.Subject)
 def create_subject(subject: schemas.SubjectCreate, db: Session = Depends(get_db), user=Depends(auth_module.require_auth)):
@@ -173,6 +197,18 @@ def create_subject(subject: schemas.SubjectCreate, db: Session = Depends(get_db)
 def read_subjects(skip: int = 0, limit: int = 100, x_department_id: str = Header(...), db: Session = Depends(get_db), user=Depends(auth_module.require_auth)):
     return crud.get_subjects(db, department_id=x_department_id, skip=skip, limit=limit)
 
+@app.put("/subjects/{item_id}", response_model=schemas.Subject)
+def update_subject(item_id: int, subject: schemas.SubjectCreate, x_department_id: str = Header(...), db: Session = Depends(get_db), user=Depends(auth_module.require_auth)):
+    updated = crud.update_item(db, models.Subject, item_id, subject.model_dump(), x_department_id)
+    if not updated: raise HTTPException(status_code=404, detail="Item not found")
+    return updated
+
+@app.delete("/subjects/{item_id}")
+def delete_subject(item_id: int, x_department_id: str = Header(...), db: Session = Depends(get_db), user=Depends(auth_module.require_auth)):
+    if not crud.delete_item(db, models.Subject, item_id, x_department_id):
+        raise HTTPException(status_code=404, detail="Item not found")
+    return {"status": "deleted"}
+
 @app.post("/tas/", response_model=schemas.TeachingAssistant)
 def create_ta(ta: schemas.TeachingAssistantCreate, db: Session = Depends(get_db), user=Depends(auth_module.require_auth)):
     return crud.create_ta(db=db, ta=ta)
@@ -180,6 +216,18 @@ def create_ta(ta: schemas.TeachingAssistantCreate, db: Session = Depends(get_db)
 @app.get("/tas/", response_model=List[schemas.TeachingAssistant])
 def read_tas(skip: int = 0, limit: int = 100, x_department_id: str = Header(...), db: Session = Depends(get_db), user=Depends(auth_module.require_auth)):
     return crud.get_tas(db, department_id=x_department_id, skip=skip, limit=limit)
+
+@app.put("/tas/{item_id}", response_model=schemas.TeachingAssistant)
+def update_ta(item_id: int, ta: schemas.TeachingAssistantCreate, x_department_id: str = Header(...), db: Session = Depends(get_db), user=Depends(auth_module.require_auth)):
+    updated = crud.update_item(db, models.TeachingAssistant, item_id, ta.model_dump(), x_department_id)
+    if not updated: raise HTTPException(status_code=404, detail="Item not found")
+    return updated
+
+@app.delete("/tas/{item_id}")
+def delete_ta(item_id: int, x_department_id: str = Header(...), db: Session = Depends(get_db), user=Depends(auth_module.require_auth)):
+    if not crud.delete_item(db, models.TeachingAssistant, item_id, x_department_id):
+        raise HTTPException(status_code=404, detail="Item not found")
+    return {"status": "deleted"}
 
 @app.get("/config/", response_model=schemas.ConstraintsConfig)
 def read_config(x_department_id: str = Header(...), db: Session = Depends(get_db), user=Depends(auth_module.require_auth)):

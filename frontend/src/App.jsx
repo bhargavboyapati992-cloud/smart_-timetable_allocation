@@ -160,7 +160,7 @@ function ChangeUsernamePanel({ onBack }) {
 }
 
 // ── Sign Up Panel ──────────────────────────────────────────────────────────────
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '27612803804-1d8hv3t802b3j3a9knaoartkp6gnn0e3.apps.googleusercontent.com';
 
 function SignUpPanel({ onSuccess, onSwitchToLogin }) {
   const { login } = useAuth();

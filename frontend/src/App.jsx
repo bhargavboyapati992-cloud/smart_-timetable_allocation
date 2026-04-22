@@ -438,10 +438,10 @@ function LoginPage() {
         }}>
           <div style={{ 
             width: '8px', height: '8px', borderRadius: '50%', 
-            background: challenges.grid_enabled ? 'var(--acc-green)' : 'var(--acc-red)',
-            boxShadow: challenges.grid_enabled ? '0 0 8px var(--acc-green)' : 'none'
+            background: challenges.grid_challenge_1 ? 'var(--acc-green)' : 'var(--acc-red)',
+            boxShadow: challenges.grid_challenge_1 ? '0 0 8px var(--acc-green)' : 'none'
           }}></div>
-          <span style={{ color: 'var(--text-muted)' }}>{challenges.grid_enabled ? 'Engine Online' : 'Engine Offline'}</span>
+          <span style={{ color: 'var(--text-muted)' }}>{challenges.grid_challenge_1 ? 'Engine Online' : 'Engine Offline'}</span>
         </div>
 
         {/* Header — always visible */}

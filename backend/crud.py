@@ -79,3 +79,23 @@ def delete_item(db: Session, model_class, item_id: int, department_id: str):
         db.commit()
         return True
     return False
+
+def get_sections(db: Session, department_id: str, skip: int = 0, limit: int = 100):
+    return db.query(models.ClassSection).filter(models.ClassSection.department_id == department_id).offset(skip).limit(limit).all()
+
+def create_section(db: Session, section: schemas.ClassSectionCreate):
+    db_section = models.ClassSection(**section.model_dump())
+    db.add(db_section)
+    db.commit()
+    db.refresh(db_section)
+    return db_section
+
+def get_mappings(db: Session, department_id: str, skip: int = 0, limit: int = 100):
+    return db.query(models.SectionSubjectMapping).filter(models.SectionSubjectMapping.department_id == department_id).offset(skip).limit(limit).all()
+
+def create_mapping(db: Session, mapping: schemas.SectionSubjectMappingCreate):
+    db_mapping = models.SectionSubjectMapping(**mapping.model_dump())
+    db.add(db_mapping)
+    db.commit()
+    db.refresh(db_mapping)
+    return db_mapping

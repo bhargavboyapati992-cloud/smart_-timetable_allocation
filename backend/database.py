@@ -7,9 +7,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Set up to read from Postgres environment, default to sqlite locally if nothing there
+# Force absolute path to avoid directory confusion between backend/ and root
+DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "timetable.db")
 SQLALCHEMY_DATABASE_URL = os.getenv(
     "DATABASE_URL", 
-    "sqlite:///./timetable.db"
+    f"sqlite:///{DB_PATH}"
 )
 
 # Connect args need check_same_thread=False ONLY for sqlite

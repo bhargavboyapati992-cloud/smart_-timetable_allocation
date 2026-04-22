@@ -250,11 +250,62 @@ def read_config(x_department_id: str = Header(...), db: Session = Depends(get_db
 def update_config(config: schemas.ConstraintsConfig, x_department_id: str = Header(...), db: Session = Depends(get_db), user=Depends(auth_module.require_auth)):
     return crud.update_config(db, config, department_id=x_department_id)
 
+@app.post("/sections/", response_model=schemas.ClassSection)
+def create_section(section: schemas.ClassSectionCreate, db: Session = Depends(get_db), user=Depends(auth_module.require_auth)):
+    return crud.create_section(db=db, section=section)
+
+@app.get("/sections/", response_model=List[schemas.ClassSection])
+def read_sections(skip: int = 0, limit: int = 100, x_department_id: str = Header(...), db: Session = Depends(get_db), user=Depends(auth_module.require_auth)):
+    return crud.get_sections(db, department_id=x_department_id, skip=skip, limit=limit)
+
+@app.put("/sections/{item_id}", response_model=schemas.ClassSection)
+def update_section(item_id: int, section: schemas.ClassSectionCreate, x_department_id: str = Header(...), db: Session = Depends(get_db), user=Depends(auth_module.require_auth)):
+    updated = crud.update_item(db, models.ClassSection, item_id, section.model_dump(), x_department_id)
+    if not updated: raise HTTPException(status_code=404, detail="Item not found")
+    return updated
+
+@app.delete("/sections/{item_id}")
+def delete_section(item_id: int, x_department_id: str = Header(...), db: Session = Depends(get_db), user=Depends(auth_module.require_auth)):
+    if not crud.delete_item(db, models.ClassSection, item_id, x_department_id):
+        raise HTTPException(status_code=404, detail="Item not found")
+    return {"status": "deleted"}
+
+@app.post("/mappings/", response_model=schemas.SectionSubjectMapping)
+def create_mapping(mapping: schemas.SectionSubjectMappingCreate, db: Session = Depends(get_db), user=Depends(auth_module.require_auth)):
+    return crud.create_mapping(db=db, mapping=mapping)
+
+@app.get("/mappings/", response_model=List[schemas.SectionSubjectMapping])
+def read_mappings(skip: int = 0, limit: int = 100, x_department_id: str = Header(...), db: Session = Depends(get_db), user=Depends(auth_module.require_auth)):
+    return crud.get_mappings(db, department_id=x_department_id, skip=skip, limit=limit)
+
+@app.put("/mappings/{item_id}", response_model=schemas.SectionSubjectMapping)
+def update_mapping(item_id: int, mapping: schemas.SectionSubjectMappingCreate, x_department_id: str = Header(...), db: Session = Depends(get_db), user=Depends(auth_module.require_auth)):
+    updated = crud.update_item(db, models.SectionSubjectMapping, item_id, mapping.model_dump(), x_department_id)
+    if not updated: raise HTTPException(status_code=404, detail="Item not found")
+    return updated
+
+@app.delete("/mappings/{item_id}")
+def delete_mapping(item_id: int, x_department_id: str = Header(...), db: Session = Depends(get_db), user=Depends(auth_module.require_auth)):
+    if not crud.delete_item(db, models.SectionSubjectMapping, item_id, x_department_id):
+        raise HTTPException(status_code=404, detail="Item not found")
+    return {"status": "deleted"}
+
 @app.post("/generate")
 def generate_schedule(solverType: str = "ortools", x_department_id: str = Header(...), db: Session = Depends(get_db), user=Depends(auth_module.require_auth)):
     config = crud.get_config(db, x_department_id)
+    print(f"Generating for Dept: {x_department_id}")
     
     db_rooms = db.query(models.Room).filter(models.Room.department_id == x_department_id).all()
+    print(f"Rooms found: {len(db_rooms)}")
+    
+    db_sections = db.query(models.ClassSection).filter(models.ClassSection.department_id == x_department_id).all()
+    print(f"Sections found: {len(db_sections)}")
+    
+    db_subjects = db.query(models.Subject).filter(models.Subject.department_id == x_department_id).all()
+    print(f"Subjects found: {len(db_subjects)}")
+    
+    db_teachers = db.query(models.Teacher).filter(models.Teacher.department_id == x_department_id).all()
+    print(f"Teachers found: {len(db_teachers)}")
     rooms_data = [{"id": r.id, "room_type": r.room_type, "name": r.name} for r in db_rooms]
     
     db_mappings = db.query(models.SectionSubjectMapping).filter(models.SectionSubjectMapping.department_id == x_department_id).all()

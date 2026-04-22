@@ -77,3 +77,18 @@ class TeachingAssistant(TeachingAssistantBase):
     id: int
     class Config:
         from_attributes = True
+
+class SectionSubjectMappingBase(BaseModel):
+    department_id: str
+    section_id: int
+    subject_id: int
+    teacher_id: int
+    secondary_teacher_id: Optional[int] = None
+
+class SectionSubjectMappingCreate(SectionSubjectMappingBase):
+    pass
+
+class SectionSubjectMapping(SectionSubjectMappingBase):
+    id: int
+    class Config:
+        from_attributes = True

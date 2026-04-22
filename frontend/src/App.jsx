@@ -396,7 +396,9 @@ function LoginPage() {
   const [challenges, setChallenges] = useState({ grid_challenge_1: 'B3', grid_challenge_2: 'D5', grid_enabled: false });
 
   useEffect(() => {
-    fetch(`${apiUrl}/auth/challenges`)
+    fetch(`${apiUrl}/auth/challenges`, { 
+      headers: { 'Bypass-Tunnel-Reminder': 'true', 'ngrok-skip-browser-warning': 'true' } 
+    })
       .then(r => r.json())
       .then(setChallenges)
       .catch(() => {

@@ -69,5 +69,13 @@
     "department_id": "cse",
     "role": "staff",
     "display_name": "leela"
+  },
+  {
+    "username": "adusumallijagruthi",
+    "password": "",
+    "department_id": "adusumallijagruthi",
+    "role": "staff",
+    "display_name": "Adusumalli Jagruthi",
+    "google_email": "adusumallijagruthi@gmail.com"
   }
 ]

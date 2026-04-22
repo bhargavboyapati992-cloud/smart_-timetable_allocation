@@ -3,9 +3,10 @@ import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } f
 import Timetable from './Timetable';
 import SetupWizard from './SetupWizard';
 import { TeachersGrid, RoomsGrid, SubjectsGrid, TAGrid } from './DataEntryGrids';
+import { getApiUrl } from './config';
 
 // Initialize API URL from localStorage or environment
-const INITIAL_API_URL = localStorage.getItem('vims_api_url') || import.meta.env.VITE_API_URL || 'https://entering-pork-tables-river.trycloudflare.com';
+const INITIAL_API_URL = getApiUrl();
 
 // ── Auth Context ───────────────────────────────────────────────────────────────
 const AuthContext = createContext(null);

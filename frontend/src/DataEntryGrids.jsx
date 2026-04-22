@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getApiUrl } from './config';
 
 function getAuthHeaders(departmentId, extra = {}) {
     const session = JSON.parse(sessionStorage.getItem('vims_session') || 'null');
@@ -17,7 +18,7 @@ function BaseGrid({ title, endpoint, fields, departmentId }) {
     const [formData, setFormData] = useState({});
     const [editId, setEditId] = useState(null);
     const [openMenuId, setOpenMenuId] = useState(null);
-    const API_URL = import.meta.env.VITE_API_URL || 'https://entering-pork-tables-river.trycloudflare.com';
+    const API_URL = getApiUrl();
 
     const loadData = () => {
         fetch(`${API_URL}/${endpoint}/`, { headers: getAuthHeaders(departmentId) })

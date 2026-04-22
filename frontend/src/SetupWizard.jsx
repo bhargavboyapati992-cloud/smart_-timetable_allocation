@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getApiUrl } from './config';
 
 export default function SetupWizard({ onComplete, departmentId }) {
     const [config, setConfig] = useState({
@@ -10,7 +11,7 @@ export default function SetupWizard({ onComplete, departmentId }) {
 
     const [loading, setLoading] = useState(false);
     
-    const API_URL = import.meta.env.VITE_API_URL || 'https://entering-pork-tables-river.trycloudflare.com';
+    const API_URL = getApiUrl();
     
     useEffect(() => {
         // Fetch existing config if any

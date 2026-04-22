@@ -55,5 +55,12 @@
     "department_id": "acse",
     "role": "staff",
     "display_name": "bhargav"
+  },
+  {
+    "username": "bhargav1234",
+    "password": "bhargav",
+    "department_id": "acse",
+    "role": "staff",
+    "display_name": "bhargav"
   }
 ]

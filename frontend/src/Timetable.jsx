@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getApiUrl } from './config';
 
 const mockData = {
   1: { // Monday
@@ -39,7 +40,7 @@ export default function Timetable({ departmentId }) {
 
   const handleGenerate = () => {
     setGenerating(true);
-    const API_URL = import.meta.env.VITE_API_URL || 'https://entering-pork-tables-river.trycloudflare.com';
+    const API_URL = getApiUrl();
     const session = JSON.parse(sessionStorage.getItem('vims_session') || 'null');
     const token = session?.access_token || '';
     fetch(`${API_URL}/generate?solverType=ortools`, {

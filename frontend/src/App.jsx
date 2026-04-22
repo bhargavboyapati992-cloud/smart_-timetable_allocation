@@ -30,7 +30,7 @@ function AuthProvider({ children }) {
   const logout = () => {
     sessionStorage.removeItem('vims_session');
     setSession(null);
-    fetch(`${apiUrl}/auth/logout`, { method: 'POST', headers: { 'Bypass-Tunnel-Reminder': 'true' } }).catch(() => {});
+    fetch(`${apiUrl}/auth/logout`, { method: 'POST', headers: { 'Bypass-Tunnel-Reminder': 'true', 'ngrok-skip-browser-warning': 'true' } }).catch(() => {});
   };
 
   return (
@@ -50,7 +50,7 @@ function ConnectionManager({ apiUrl, setApiUrl, onBack }) {
     setStatus('checking');
     try {
       const res = await fetch(`${url}/auth/challenges`, { 
-        headers: { 'Bypass-Tunnel-Reminder': 'true' },
+        headers: { 'Bypass-Tunnel-Reminder': 'true', 'ngrok-skip-browser-warning': 'true' },
         signal: AbortSignal.timeout(5000) 
       });
       if (res.ok) setStatus('ok');
@@ -125,7 +125,7 @@ function ForgotPasswordPanel({ onBack }) {
     try {
       const res = await fetch(`${apiUrl}/auth/forgot-password`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Bypass-Tunnel-Reminder': 'true' },
+        headers: { 'Content-Type': 'application/json', 'Bypass-Tunnel-Reminder': 'true', 'ngrok-skip-browser-warning': 'true' },
         body: JSON.stringify({ username, new_password: newPass, confirm_password: confirm }),
       });
       const data = await res.json();
@@ -214,7 +214,7 @@ function ChangeUsernamePanel({ onBack }) {
     try {
       const res = await fetch(`${apiUrl}/auth/change-username`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Bypass-Tunnel-Reminder': 'true' },
+        headers: { 'Content-Type': 'application/json', 'Bypass-Tunnel-Reminder': 'true', 'ngrok-skip-browser-warning': 'true' },
         body: JSON.stringify({ current_username: currentUser, password, new_username: newUser }),
       });
       const data = await res.json();
@@ -302,7 +302,7 @@ function SignUpPanel({ onSuccess, onSwitchToLogin }) {
     try {
       const res = await fetch(`${apiUrl}/auth/google`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Bypass-Tunnel-Reminder': 'true' },
+        headers: { 'Content-Type': 'application/json', 'Bypass-Tunnel-Reminder': 'true', 'ngrok-skip-browser-warning': 'true' },
         body: JSON.stringify({ credential }),
       });
       const data = await res.json();
@@ -320,7 +320,7 @@ function SignUpPanel({ onSuccess, onSwitchToLogin }) {
     try {
       const res = await fetch(`${apiUrl}/auth/signup`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Bypass-Tunnel-Reminder': 'true' },
+        headers: { 'Content-Type': 'application/json', 'Bypass-Tunnel-Reminder': 'true', 'ngrok-skip-browser-warning': 'true' },
         body: JSON.stringify({
           username, password, confirm_password: confirm,
           department_id: deptId, display_name: displayName
@@ -411,7 +411,7 @@ function LoginPage() {
     try {
       const res = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Bypass-Tunnel-Reminder': 'true' },
+        headers: { 'Content-Type': 'application/json', 'Bypass-Tunnel-Reminder': 'true', 'ngrok-skip-browser-warning': 'true' },
         body: JSON.stringify({ username, password, grid_value_1: grid1, grid_value_2: grid2 }),
       });
       const data = await res.json();

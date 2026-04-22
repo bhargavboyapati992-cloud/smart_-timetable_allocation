@@ -16,7 +16,11 @@ export default function SetupWizard({ onComplete, departmentId }) {
     useEffect(() => {
         // Fetch existing config if any
         fetch(`${API_URL}/config/`, {
-            headers: { 'X-Department-ID': departmentId, 'Bypass-Tunnel-Reminder': 'true' }
+            headers: { 
+                'X-Department-ID': departmentId, 
+                'Bypass-Tunnel-Reminder': 'true',
+                'ngrok-skip-browser-warning': 'true'
+            }
         })
         .then(res => res.json())
         .then(data => {
@@ -36,7 +40,8 @@ export default function SetupWizard({ onComplete, departmentId }) {
             headers: {
                 'Content-Type': 'application/json',
                 'X-Department-ID': departmentId,
-                'Bypass-Tunnel-Reminder': 'true'
+                'Bypass-Tunnel-Reminder': 'true',
+                'ngrok-skip-browser-warning': 'true'
             },
             body: JSON.stringify(config)
         })

@@ -8,6 +8,7 @@ function getAuthHeaders(departmentId, extra = {}) {
         'X-Department-ID': departmentId,
         'Content-Type': 'application/json',
         'Bypass-Tunnel-Reminder': 'true',
+        'ngrok-skip-browser-warning': 'true',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         ...extra,
     };

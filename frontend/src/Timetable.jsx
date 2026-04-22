@@ -48,6 +48,7 @@ export default function Timetable({ departmentId }) {
         headers: {
           'X-Department-ID': departmentId,
           'Bypass-Tunnel-Reminder': 'true',
+          'ngrok-skip-browser-warning': 'true',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         }
     })

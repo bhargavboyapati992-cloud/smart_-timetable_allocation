@@ -24,6 +24,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+def read_root():
+    return {
+        "status": "online",
+        "message": "VIMS Timetable AI Engine is running",
+        "portal_url": "https://beautiful-tarsier-7dd4ff.netlify.app/"
+    }
+
 # ── DB Dependency ──────────────────────────────────────────────────────────────
 def get_db():
     db = SessionLocal()

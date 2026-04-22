@@ -34,5 +34,26 @@
     "department_id": "acse",
     "role": "staff",
     "display_name": "bhargav"
+  },
+  {
+    "username": "leelasagar",
+    "password": "leelasagar",
+    "department_id": "cse",
+    "role": "staff",
+    "display_name": "leela"
+  },
+  {
+    "username": "avinash",
+    "password": "pardhu",
+    "department_id": "acse",
+    "role": "staff",
+    "display_name": "pardhu"
+  },
+  {
+    "username": "bhargav123",
+    "password": "bhargav",
+    "department_id": "acse",
+    "role": "staff",
+    "display_name": "bhargav"
   }
 ]

@@ -4,16 +4,23 @@ import Timetable from './Timetable';
 import SetupWizard from './SetupWizard';
 import { TeachersGrid, RoomsGrid, SubjectsGrid, TAGrid } from './DataEntryGrids';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://entering-pork-tables-river.trycloudflare.com';
+// Initialize API URL from localStorage or environment
+const INITIAL_API_URL = localStorage.getItem('vims_api_url') || import.meta.env.VITE_API_URL || 'https://entering-pork-tables-river.trycloudflare.com';
 
 // ── Auth Context ───────────────────────────────────────────────────────────────
 const AuthContext = createContext(null);
 export function useAuth() { return useContext(AuthContext); }
 
 function AuthProvider({ children }) {
+  const [apiUrl, setApiUrl] = useState(INITIAL_API_URL);
   const [session, setSession] = useState(() => {
     try { return JSON.parse(sessionStorage.getItem('vims_session')); } catch { return null; }
   });
+
+  // Save API URL to localStorage when changed
+  useEffect(() => {
+    localStorage.setItem('vims_api_url', apiUrl);
+  }, [apiUrl]);
 
   const login = (data) => {
     sessionStorage.setItem('vims_session', JSON.stringify(data));
@@ -22,17 +29,77 @@ function AuthProvider({ children }) {
   const logout = () => {
     sessionStorage.removeItem('vims_session');
     setSession(null);
-    fetch(`${API_URL}/auth/logout`, { method: 'POST', headers: { 'Bypass-Tunnel-Reminder': 'true' } }).catch(() => {});
+    fetch(`${apiUrl}/auth/logout`, { method: 'POST', headers: { 'Bypass-Tunnel-Reminder': 'true' } }).catch(() => {});
   };
 
   return (
-    <AuthContext.Provider value={{ session, login, logout, isAuthenticated: !!session }}>
+    <AuthContext.Provider value={{ session, login, logout, isAuthenticated: !!session, apiUrl, setApiUrl }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
 // ── VIMS Login Page ────────────────────────────────────────────────────────────
+// ── Connection Manager ────────────────────────────────────────────────────────
+function ConnectionManager({ apiUrl, setApiUrl, onBack }) {
+  const [tempUrl, setTempUrl] = useState(apiUrl);
+  const [status, setStatus] = useState('idle'); // 'idle' | 'checking' | 'ok' | 'fail'
+
+  const checkConnection = async (url) => {
+    setStatus('checking');
+    try {
+      const res = await fetch(`${url}/auth/challenges`, { 
+        headers: { 'Bypass-Tunnel-Reminder': 'true' },
+        signal: AbortSignal.timeout(5000) 
+      });
+      if (res.ok) setStatus('ok');
+      else setStatus('fail');
+    } catch {
+      setStatus('fail');
+    }
+  };
+
+  const handleSave = () => {
+    let formatted = tempUrl.trim();
+    if (formatted.endsWith('/')) formatted = formatted.slice(0, -1);
+    setApiUrl(formatted);
+    if (onBack) onBack();
+  };
+
+  return (
+    <div className="glass-panel" style={{ padding: '1.5rem', marginTop: '1rem' }}>
+      <h3 style={{ color: 'var(--primary)', marginBottom: '0.5rem', fontSize: '1rem' }}>🌐 AI Server Settings</h3>
+      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+        If the portal cannot reach the backend, update the tunnel URL here.
+      </p>
+      
+      <div className="form-group">
+        <label>Current Backend URL</label>
+        <div style={{ display:'flex', gap:'0.5rem' }}>
+          <input 
+            type="text" 
+            className="input-field" 
+            value={tempUrl} 
+            onChange={e => setTempUrl(e.target.value)} 
+            placeholder="https://...trycloudflare.com"
+          />
+          <button className="btn btn-secondary" onClick={() => checkConnection(tempUrl)}>
+            {status === 'checking' ? '⏳' : '🔍'}
+          </button>
+        </div>
+      </div>
+
+      {status === 'ok' && <p style={{ color: 'var(--acc-green)', fontSize: '0.75rem', marginBottom: '0.5rem' }}>✅ Connection Successful!</p>}
+      {status === 'fail' && <p style={{ color: 'var(--acc-red)', fontSize: '0.75rem', marginBottom: '0.5rem' }}>❌ Could not reach server at this URL.</p>}
+
+      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+        <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSave}>Apply & Save</button>
+        {onBack && <button className="btn btn-secondary" onClick={onBack}>Cancel</button>}
+      </div>
+    </div>
+  );
+}
+
 // ── Shared link button style ───────────────────────────────────────────────────
 const linkBtn = {
   background: 'none', border: 'none', cursor: 'pointer',
@@ -48,12 +115,14 @@ function ForgotPasswordPanel({ onBack }) {
   const [error, setError]         = useState('');
   const [loading, setLoading]     = useState(false);
 
+  const { apiUrl } = useAuth();
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(''); setMsg('');
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/auth/forgot-password`, {
+      const res = await fetch(`${apiUrl}/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Bypass-Tunnel-Reminder': 'true' },
         body: JSON.stringify({ username, new_password: newPass, confirm_password: confirm }),
@@ -61,14 +130,14 @@ function ForgotPasswordPanel({ onBack }) {
       const data = await res.json();
       if (!res.ok) { setError(data.detail || 'Failed'); }
       else { setMsg(data.message); }
-    } catch { setError('Server unreachable.'); }
+    } catch { setError('Server unreachable. Please check your network or update Server URL.'); }
     finally { setLoading(false); }
   };
 
   return (
     <div>
       <h3 style={{ color: 'var(--primary)', marginBottom: '1rem' }}>🔑 Reset Password</h3>
-      {error && <div style={{ color:'var(--acc-red)', background:'rgba(239,68,68,0.1)', borderRadius:'8px', padding:'0.6rem 1rem', marginBottom:'0.75rem', fontSize:'0.85rem' }}>⚠️ {error}</div>}
+      <ConnectionError message={error} onUpdateUrl={() => onBack('connection')} />
       {msg   && <div style={{ color:'#22c55e',       background:'rgba(34,197,94,0.1)',  borderRadius:'8px', padding:'0.6rem 1rem', marginBottom:'0.75rem', fontSize:'0.85rem' }}>✅ {msg}</div>}
       {!msg && (
         <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:'0.85rem' }}>
@@ -99,6 +168,33 @@ function ForgotPasswordPanel({ onBack }) {
   );
 }
 
+// ── Shared Error Component ───────────────────────────────────────────────────
+function ConnectionError({ message, onUpdateUrl }) {
+  if (!message) return null;
+  const isNetworkError = message.includes('Server unreachable') || message.includes('Cannot reach');
+  
+  return (
+    <div style={{ 
+      color:'var(--acc-red)', background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)',
+      borderRadius:'8px', padding:'0.75rem 1rem', marginBottom:'1.25rem', fontSize:'0.875rem' 
+    }}>
+      ⚠️ {message}
+      {isNetworkError && (
+        <button 
+          onClick={onUpdateUrl}
+          style={{ 
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: 'var(--primary)', fontSize: '0.8rem', textDecoration: 'underline', padding: 0,
+            display:'block', marginTop:'0.5rem', fontWeight:600 
+          }}
+        >
+          ⚙️ Update Server URL
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ── Change Username Panel ──────────────────────────────────────────────────────
 function ChangeUsernamePanel({ onBack }) {
   const [currentUser, setCurrentUser] = useState('');
@@ -108,12 +204,14 @@ function ChangeUsernamePanel({ onBack }) {
   const [error, setError]             = useState('');
   const [loading, setLoading]         = useState(false);
 
+  const { apiUrl } = useAuth();
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(''); setMsg('');
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/auth/change-username`, {
+      const res = await fetch(`${apiUrl}/auth/change-username`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Bypass-Tunnel-Reminder': 'true' },
         body: JSON.stringify({ current_username: currentUser, password, new_username: newUser }),
@@ -121,14 +219,14 @@ function ChangeUsernamePanel({ onBack }) {
       const data = await res.json();
       if (!res.ok) { setError(data.detail || 'Failed'); }
       else { setMsg(data.message); }
-    } catch { setError('Server unreachable.'); }
+    } catch { setError('Server unreachable. Please check your network or update Server URL.'); }
     finally { setLoading(false); }
   };
 
   return (
     <div>
       <h3 style={{ color: 'var(--primary)', marginBottom: '1rem' }}>✏️ Change Username</h3>
-      {error && <div style={{ color:'var(--acc-red)', background:'rgba(239,68,68,0.1)', borderRadius:'8px', padding:'0.6rem 1rem', marginBottom:'0.75rem', fontSize:'0.85rem' }}>⚠️ {error}</div>}
+      <ConnectionError message={error} onUpdateUrl={() => onBack('connection')} />
       {msg   && <div style={{ color:'#22c55e',       background:'rgba(34,197,94,0.1)',  borderRadius:'8px', padding:'0.6rem 1rem', marginBottom:'0.75rem', fontSize:'0.85rem' }}>✅ {msg}</div>}
       {!msg && (
         <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:'0.85rem' }}>
@@ -163,7 +261,7 @@ function ChangeUsernamePanel({ onBack }) {
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '27612803804-1d8hv3t802b3j3a9knaoartkp6gnn0e3.apps.googleusercontent.com';
 
 function SignUpPanel({ onSuccess, onSwitchToLogin }) {
-  const { login } = useAuth();
+  const { login, apiUrl } = useAuth();
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername]       = useState('');
   const [deptId, setDeptId]           = useState('');
@@ -181,7 +279,9 @@ function SignUpPanel({ onSuccess, onSwitchToLogin }) {
     script.defer = true;
     script.onload = () => initGoogle();
     document.head.appendChild(script);
-    return () => document.head.removeChild(script);
+    return () => {
+      try { document.head.removeChild(script); } catch(e) {}
+    };
   }, []);
 
   const initGoogle = () => {
@@ -199,7 +299,7 @@ function SignUpPanel({ onSuccess, onSwitchToLogin }) {
   const handleGoogleCredential = async ({ credential }) => {
     setError(''); setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/auth/google`, {
+      const res = await fetch(`${apiUrl}/auth/google`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Bypass-Tunnel-Reminder': 'true' },
         body: JSON.stringify({ credential }),
@@ -207,7 +307,7 @@ function SignUpPanel({ onSuccess, onSwitchToLogin }) {
       const data = await res.json();
       if (!res.ok) { setError(data.detail || 'Google sign-in failed'); return; }
       login(data);
-    } catch { setError('Server unreachable.'); }
+    } catch { setError('Server unreachable. Please check your network or update Server URL.'); }
     finally { setLoading(false); }
   };
 
@@ -217,7 +317,7 @@ function SignUpPanel({ onSuccess, onSwitchToLogin }) {
     if (password !== confirm) { setError('Passwords do not match'); return; }
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/auth/signup`, {
+      const res = await fetch(`${apiUrl}/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Bypass-Tunnel-Reminder': 'true' },
         body: JSON.stringify({
@@ -228,7 +328,7 @@ function SignUpPanel({ onSuccess, onSwitchToLogin }) {
       const data = await res.json();
       if (!res.ok) { setError(data.detail || 'Signup failed'); return; }
       login(data);  // auto-login after signup
-    } catch { setError('Server unreachable.'); }
+    } catch { setError('Server unreachable. Please check your network or update Server URL.'); }
     finally { setLoading(false); }
   };
 
@@ -244,7 +344,7 @@ function SignUpPanel({ onSuccess, onSwitchToLogin }) {
         </div>
       )}
 
-      {error && <div style={{ color:'var(--acc-red)', background:'rgba(239,68,68,0.1)', borderRadius:'8px', padding:'0.6rem 1rem', marginBottom:'0.75rem', fontSize:'0.85rem' }}>⚠️ {error}</div>}
+      <ConnectionError message={error} onUpdateUrl={() => onSwitchToLogin('connection')} />
 
       <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:'0.85rem' }}>
         <div className="form-group">
@@ -284,8 +384,8 @@ function SignUpPanel({ onSuccess, onSwitchToLogin }) {
 
 // ── Login Page ─────────────────────────────────────────────────────────────────
 function LoginPage() {
-  const { login } = useAuth();
-  const [view, setView]           = useState('login'); // 'login' | 'signup' | 'forgot' | 'changeuser'
+  const { login, apiUrl, setApiUrl } = useAuth();
+  const [view, setView]           = useState('login'); // 'login' | 'signup' | 'forgot' | 'changeuser' | 'connection'
   const [username, setUsername]   = useState('');
   const [password, setPassword]   = useState('');
   const [grid1, setGrid1]         = useState('');
@@ -295,18 +395,20 @@ function LoginPage() {
   const [challenges, setChallenges] = useState({ grid_challenge_1: 'B3', grid_challenge_2: 'D5', grid_enabled: false });
 
   useEffect(() => {
-    fetch(`${API_URL}/auth/challenges`)
+    fetch(`${apiUrl}/auth/challenges`)
       .then(r => r.json())
       .then(setChallenges)
-      .catch(() => {});
-  }, []);
+      .catch(() => {
+        setError('Cannot reach the server. You might need to update the Server URL.');
+      });
+  }, [apiUrl]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/auth/login`, {
+      const res = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Bypass-Tunnel-Reminder': 'true' },
         body: JSON.stringify({ username, password, grid_value_1: grid1, grid_value_2: grid2 }),
@@ -315,15 +417,28 @@ function LoginPage() {
       if (!res.ok) { setError(data.detail || 'Login failed'); return; }
       login(data);
     } catch {
-      setError('Cannot reach the server. Please check your network.');
+      setError('Cannot reach the server. Please check your network or update the Server URL.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ height:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg)' }}>
-      <div className="glass-panel" style={{ width:'100%', maxWidth:'460px' }}>
+    <div style={{ height:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg)', padding: '1rem' }}>
+      <div className="glass-panel" style={{ width:'100%', maxWidth:'460px', position: 'relative' }}>
+        
+        {/* Status indicator */}
+        <div style={{ 
+          position: 'absolute', top: '1rem', right: '1.5rem', 
+          display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem' 
+        }}>
+          <div style={{ 
+            width: '8px', height: '8px', borderRadius: '50%', 
+            background: challenges.grid_enabled ? 'var(--acc-green)' : 'var(--acc-red)',
+            boxShadow: challenges.grid_enabled ? '0 0 8px var(--acc-green)' : 'none'
+          }}></div>
+          <span style={{ color: 'var(--text-muted)' }}>{challenges.grid_enabled ? 'Engine Online' : 'Engine Offline'}</span>
+        </div>
 
         {/* Header — always visible */}
         <div style={{ textAlign:'center', marginBottom:'1.5rem' }}>
@@ -357,15 +472,11 @@ function LoginPage() {
         {view === 'forgot'     && <ForgotPasswordPanel onBack={() => setView('login')} />}
         {view === 'changeuser' && <ChangeUsernamePanel onBack={() => setView('login')} />}
         {view === 'signup'     && <SignUpPanel onSwitchToLogin={() => setView('login')} />}
+        {view === 'connection' && <ConnectionManager apiUrl={apiUrl} setApiUrl={setApiUrl} onBack={() => setView('login')} />}
 
         {view === 'login' && (
           <>
-            {error && (
-              <div style={{ color:'var(--acc-red)', background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)',
-                borderRadius:'8px', padding:'0.75rem 1rem', marginBottom:'1.25rem', fontSize:'0.875rem' }}>
-                ⚠️ {error}
-              </div>
-            )}
+            <ConnectionError message={error} onUpdateUrl={() => setView('connection')} />
 
             <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:'1rem' }}>
               <div className="form-group">

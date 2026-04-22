@@ -20,7 +20,7 @@ echo [2/3] Starting Permanent Ngrok Tunnel...
 echo ------------------------------------------------------------
 echo URL: https://factor-driven-kooky.ngrok-free.dev
 echo ------------------------------------------------------------
-ngrok config add-authtoken rd_3ChDx5frMYXLT3LeRjvqOD6T37g
+ngrok config add-authtoken 3ChDwgDCujVeO4JTkcaj9ntD24a_46QYQkz7yjP5RRJDC8xxv
 start "Ngrok Tunnel" cmd /k "ngrok http 8080 --url https://factor-driven-kooky.ngrok-free.dev"
 timeout /t 5 >nul
 

@@ -6,7 +6,7 @@ export const getApiUrl = () => {
   return (
     localStorage.getItem('vims_api_url') || 
     import.meta.env.VITE_API_URL || 
-    'https://latin-fired-short-preparing.trycloudflare.com'
+    'https://factor-driven-kooky.ngrok-free.dev'
   );
 };
 

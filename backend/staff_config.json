@@ -84,5 +84,12 @@
     "department_id": "acse",
     "role": "staff",
     "display_name": "thanu"
+  },
+  {
+    "username": "Siri",
+    "password": "Radhakrishna@13",
+    "department_id": "cse_-iot",
+    "role": "staff",
+    "display_name": "K.sirivennela"
   }
 ]

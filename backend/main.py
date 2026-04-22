@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Header
+from fastapi import FastAPI, Depends, HTTPException, Header, Request
 from fastapi.security import HTTPBearer
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -16,12 +16,18 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="VIMS Timetable Allocation API")
 
+@app.middleware("http")
+async def add_ngrok_skip_header(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["ngrok-skip-browser-warning"] = "true"
+    return response
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],    # Restrict to portal domain in production
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["Content-Type", "Authorization", "X-Department-ID", "Bypass-Tunnel-Reminder", "ngrok-skip-browser-warning"],
+    allow_headers=["*"],
 )
 
 @app.get("/")
@@ -267,48 +273,58 @@ def generate_schedule(solverType: str = "ortools", x_department_id: str = Header
             "subject_id": m.subject_id,
             "teacher_ids": t_ids
         })
-        
-    if not mappings_data:
-        db_teachers = db.query(models.Teacher).filter(models.Teacher.department_id == x_department_id).all()
-        db_tas = db.query(models.TeachingAssistant).filter(models.TeachingAssistant.department_id == x_department_id).all()
-        
-        if db_subjects and db_teachers:
-            import itertools, re
-            ta_cycle = itertools.cycle(db_tas) if db_tas else None
-            unassigned_subjects = list(db_subjects)
-            
-            for t in db_teachers:
-                match = re.search(r'\((.*?)\)', t.name)
-                assigned_subject_name = match.group(1).strip().lower() if match else None
-                if assigned_subject_name:
-                    for sub in list(unassigned_subjects):
-                        if assigned_subject_name == sub.name.lower() or assigned_subject_name in sub.name.lower():
-                            is_lab = sub.type.lower() in ["lab", "practical", "p"]
-                            t_ids = [t.id]
-                            if is_lab and ta_cycle:
-                                t_ids.append(next(ta_cycle).id)
-                            mappings_data.append({
-                                "m_id": len(mappings_data) + 1,
-                                "section_id": 1,
-                                "subject_id": sub.id,
-                                "teacher_ids": t_ids
-                            })
-                            unassigned_subjects.remove(sub)
 
-            if unassigned_subjects:
-                teacher_cycle = itertools.cycle(db_teachers)
-                for sub in unassigned_subjects:
-                    t = next(teacher_cycle)
-                    is_lab = sub.type.lower() in ["lab", "practical", "p"]
-                    t_ids = [t.id]
-                    if is_lab and ta_cycle:
-                        t_ids.append(next(ta_cycle).id)
-                    mappings_data.append({
-                        "m_id": len(mappings_data) + 1,
-                        "section_id": 1,
-                        "subject_id": sub.id,
-                        "teacher_ids": t_ids
-                    })
+    # ── Automatic Library Injection ───────────────────────────────────────────
+    # For every section in this department, ensure it has 2 hours of 'Library'
+    db_sections = db.query(models.ClassSection).filter(models.ClassSection.department_id == x_department_id).all()
+    lib_sub = db.query(models.Subject).filter(models.Subject.name == "Library").first()
+    
+    if lib_sub:
+        subjects_info[lib_sub.id] = {"hours": lib_sub.hours_per_week, "type": lib_sub.type, "name": lib_sub.name}
+        for sec in db_sections:
+            # Check if Library is already mapped for this section
+            exists = any(m["section_id"] == sec.id and m["subject_id"] == lib_sub.id for m in mappings_data)
+            if not exists:
+                mappings_data.append({
+                    "m_id": 10000 + sec.id, # Offset to avoid collision with DB IDs
+                    "section_id": sec.id,
+                    "subject_id": lib_sub.id,
+                    "teacher_ids": [] # Library doesn't necessarily need a specific teacher
+                })
+        
+    # ── Automatic Subject-Teacher Assignment (if no mappings exist in DB) ──
+    # Check if we have any "real" mappings (non-Library)
+    real_mappings_exist = db.query(models.SectionSubjectMapping).filter(models.SectionSubjectMapping.department_id == x_department_id).first()
+    
+    if not real_mappings_exist and db_subjects and db_teachers:
+        import itertools, re
+        ta_cycle = itertools.cycle(db_tas) if db_tas else None
+        teacher_cycle = itertools.cycle(db_teachers)
+        
+        # We need to assign every subject to EVERY section to have a full timetable
+        for sec in db_sections:
+            for sub in db_subjects:
+                # Find a teacher who mentions this subject in their name, else cycle
+                found_teacher = None
+                for t in db_teachers:
+                    match = re.search(r'\((.*?)\)', t.name)
+                    if match and (sub.name.lower() in match.group(1).lower()):
+                        found_teacher = t
+                        break
+                
+                t = found_teacher if found_teacher else next(teacher_cycle)
+                
+                is_lab = sub.type.lower() in ["lab", "practical", "p"]
+                t_ids = [t.id]
+                if is_lab and ta_cycle:
+                    t_ids.append(next(ta_cycle).id)
+                    
+                mappings_data.append({
+                    "m_id": len(mappings_data) + 1,
+                    "section_id": sec.id,
+                    "subject_id": sub.id,
+                    "teacher_ids": t_ids
+                })
         
     if solverType == "ortools":
         res = solver_ortools.generate_timetable(

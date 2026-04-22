@@ -13,16 +13,11 @@ const AuthContext = createContext(null);
 export function useAuth() { return useContext(AuthContext); }
 
 function AuthProvider({ children }) {
-  const [apiUrl, setApiUrl] = useState(INITIAL_API_URL);
-  const VERSION = "1.0.8"; // To verify cache refresh
+  const apiUrl = INITIAL_API_URL;
+  const VERSION = "1.1.0"; // Updated version
   const [session, setSession] = useState(() => {
     try { return JSON.parse(sessionStorage.getItem('vims_session')); } catch { return null; }
   });
-
-  // Save API URL to localStorage when changed
-  useEffect(() => {
-    localStorage.setItem('vims_api_url', apiUrl);
-  }, [apiUrl]);
 
   const login = (data) => {
     sessionStorage.setItem('vims_session', JSON.stringify(data));
@@ -35,7 +30,7 @@ function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, login, logout, isAuthenticated: !!session, apiUrl, setApiUrl }}>
+    <AuthContext.Provider value={{ session, login, logout, isAuthenticated: !!session, apiUrl }}>
       {children}
     </AuthContext.Provider>
   );
@@ -43,74 +38,7 @@ function AuthProvider({ children }) {
 
 // ── VIMS Login Page ────────────────────────────────────────────────────────────
 // ── Connection Manager ────────────────────────────────────────────────────────
-function ConnectionManager({ apiUrl, setApiUrl, onBack }) {
-  const [tempUrl, setTempUrl] = useState(apiUrl);
-  const [status, setStatus] = useState('idle'); // 'idle' | 'checking' | 'ok' | 'fail'
-
-  const checkConnection = async (url) => {
-    setStatus('checking');
-    try {
-      const res = await fetch(`${url}/auth/challenges`, { 
-        headers: { 'Bypass-Tunnel-Reminder': 'true', 'ngrok-skip-browser-warning': 'true' },
-        signal: AbortSignal.timeout(5000) 
-      });
-      if (res.ok) setStatus('ok');
-      else setStatus('fail');
-    } catch {
-      setStatus('fail');
-    }
-  };
-
-  const handleSave = () => {
-    let formatted = tempUrl.trim();
-    if (formatted.endsWith('/')) formatted = formatted.slice(0, -1);
-    setApiUrl(formatted);
-    if (onBack) onBack();
-  };
-
-  return (
-    <div className="glass-panel" style={{ padding: '1.5rem', marginTop: '1rem' }}>
-      <h3 style={{ color: 'var(--primary)', marginBottom: '0.5rem', fontSize: '1rem' }}>🌐 AI Server Settings</h3>
-      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-        If the portal cannot reach the backend, update the tunnel URL here.
-      </p>
-      
-      <div className="form-group">
-        <label>Current Backend URL</label>
-        <div style={{ display:'flex', gap:'0.5rem' }}>
-          <input 
-            type="text" 
-            className="input-field" 
-            value={tempUrl} 
-            onChange={e => setTempUrl(e.target.value)} 
-            placeholder="https://...trycloudflare.com"
-          />
-          <button className="btn btn-secondary" onClick={() => checkConnection(tempUrl)}>
-            {status === 'checking' ? '⏳' : '🔍'}
-          </button>
-        </div>
-      </div>
-
-      {status === 'ok' && <p style={{ color: 'var(--acc-green)', fontSize: '0.75rem', marginBottom: '0.5rem' }}>✅ Connection Successful!</p>}
-      {status === 'fail' && (
-        <div style={{ marginTop: '0.5rem' }}>
-          <p style={{ color: 'var(--acc-red)', fontSize: '0.75rem', marginBottom: '0.5rem' }}>❌ Could not reach server.</p>
-          <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-            Tip: If you are on a new network, click below to unlock the connection:
-          </p>
-          <a href={tempUrl} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ display: 'inline-block', marginTop: '0.4rem', fontSize: '0.7rem', padding: '0.3rem 0.6rem' }}>
-            🔓 Unlock Connection
-          </a>
-        </div>
-      )}
-
-      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-        <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSave}>Apply & Save</button>
-        {onBack && <button className="btn btn-secondary" onClick={onBack}>Cancel</button>}
-      </div>
-    </div>
-  );
-}
+// ConnectionManager removed as URL is now permanent
 
 // ── Shared link button style ───────────────────────────────────────────────────
 const linkBtn = {
@@ -181,7 +109,7 @@ function ForgotPasswordPanel({ onBack }) {
 }
 
 // ── Shared Error Component ───────────────────────────────────────────────────
-function ConnectionError({ message, onUpdateUrl }) {
+function ConnectionError({ message }) {
   if (!message) return null;
   const isNetworkError = message.includes('Server unreachable') || message.includes('Cannot reach');
   
@@ -192,16 +120,9 @@ function ConnectionError({ message, onUpdateUrl }) {
     }}>
       ⚠️ {message}
       {isNetworkError && (
-        <button 
-          onClick={onUpdateUrl}
-          style={{ 
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--primary)', fontSize: '0.8rem', textDecoration: 'underline', padding: 0,
-            display:'block', marginTop:'0.5rem', fontWeight:600 
-          }}
-        >
-          ⚙️ Update Server URL
-        </button>
+        <p style={{ fontSize: '0.75rem', marginTop: '0.5rem', opacity: 0.8 }}>
+          Tip: Ensure the local backend and Ngrok tunnel are running on the server.
+        </p>
       )}
     </div>
   );
@@ -407,14 +328,29 @@ function LoginPage() {
   const [challenges, setChallenges] = useState({ grid_challenge_1: 'B3', grid_challenge_2: 'D5', grid_enabled: false });
 
   useEffect(() => {
-    fetch(`${apiUrl}/auth/challenges`, { 
-      headers: { 'Bypass-Tunnel-Reminder': 'true', 'ngrok-skip-browser-warning': 'true' } 
-    })
-      .then(r => r.json())
-      .then(setChallenges)
-      .catch(() => {
-        setError('Cannot reach the server. You might need to update the Server URL.');
-      });
+    let retries = 0;
+    const maxRetries = 3;
+
+    const fetchChallenges = () => {
+      fetch(`${apiUrl}/auth/challenges`, { 
+        headers: { 'Bypass-Tunnel-Reminder': 'true', 'ngrok-skip-browser-warning': 'true' } 
+      })
+        .then(r => r.json())
+        .then(data => {
+          setChallenges(data);
+          setError('');
+        })
+        .catch(() => {
+          if (retries < maxRetries) {
+            retries++;
+            setTimeout(fetchChallenges, 2000); // Retry every 2 seconds
+          } else {
+            setError('Cannot reach the server. You might need to update the Server URL.');
+          }
+        });
+    };
+
+    fetchChallenges();
   }, [apiUrl]);
 
   const handleSubmit = async (e) => {
@@ -431,7 +367,7 @@ function LoginPage() {
       if (!res.ok) { setError(data.detail || 'Login failed'); return; }
       login(data);
     } catch {
-      setError('Cannot reach the server. Please check your network or update the Server URL.');
+      setError('Cannot reach the server. Please ensure the backend is running.');
     } finally {
       setLoading(false);
     }
@@ -441,25 +377,20 @@ function LoginPage() {
     <div style={{ height:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg)', padding: '1rem' }}>
       <div className="glass-panel" style={{ width:'100%', maxWidth:'460px', position: 'relative' }}>
         
-        {/* Status indicator */}
-        <div style={{ 
-          position: 'absolute', top: '1rem', right: '1.5rem', 
-          display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem' 
-        }}>
+        {/* Status indicator - hidden settings trigger */}
+        <div 
+          style={{ 
+            position: 'absolute', top: '1rem', right: '1.5rem', 
+            display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem',
+            cursor: 'default'
+          }}
+        >
           <div style={{ 
             width: '8px', height: '8px', borderRadius: '50%', 
             background: challenges.grid_challenge_1 ? 'var(--acc-green)' : 'var(--acc-red)',
             boxShadow: challenges.grid_challenge_1 ? '0 0 8px var(--acc-green)' : 'none'
           }}></div>
           <span style={{ color: 'var(--text-muted)' }}>{challenges.grid_challenge_1 ? 'Engine Online' : 'Engine Offline'}</span>
-          {!challenges.grid_challenge_1 && (
-            <button 
-              onClick={() => setView('connection')} 
-              style={{ background:'none', border:'none', color:'var(--primary)', cursor:'pointer', fontSize:'0.7rem', textDecoration:'underline', marginLeft:'0.5rem' }}
-            >
-              How to fix?
-            </button>
-          )}
         </div>
 
         {/* Header — always visible */}
@@ -494,11 +425,10 @@ function LoginPage() {
         {view === 'forgot'     && <ForgotPasswordPanel onBack={() => setView('login')} />}
         {view === 'changeuser' && <ChangeUsernamePanel onBack={() => setView('login')} />}
         {view === 'signup'     && <SignUpPanel onSwitchToLogin={() => setView('login')} />}
-        {view === 'connection' && <ConnectionManager apiUrl={apiUrl} setApiUrl={setApiUrl} onBack={() => setView('login')} />}
 
         {view === 'login' && (
           <>
-            <ConnectionError message={error} onUpdateUrl={() => setView('connection')} />
+            <div style={{ color: 'var(--acc-red)', fontSize: '0.8rem', textAlign: 'center', marginBottom: '1rem' }}>{error}</div>
 
             <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:'1rem' }}>
               <div className="form-group">

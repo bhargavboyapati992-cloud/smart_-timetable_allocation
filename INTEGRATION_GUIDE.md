@@ -67,7 +67,7 @@ Copy `.env.example` → `.env` and fill in:
 Create a file `frontend/.env`:
 
 ```env
-VITE_API_URL=https://your-backend-domain.com
+VITE_API_URL=https://factor-driven-kooky.ngrok-free.dev
 ```
 
 This is the only change needed on the frontend side for any deployment.
@@ -88,7 +88,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 ```bash
 cd frontend
 npm install
-echo "VITE_API_URL=http://localhost:8000" > .env
+echo "VITE_API_URL=https://factor-driven-kooky.ngrok-free.dev" > .env
 npm run dev
 ```
 
@@ -123,7 +123,7 @@ If the portal team wants to embed this inside an existing VIMS page:
 ```html
 <!-- In your existing VIMS portal page -->
 <iframe
-  src="https://timetable.vims.edu.in"
+  src="https://beautiful-tarsier-7dd4ff.netlify.app"
   style="width:100%; height:100vh; border:none;"
   allow="same-origin"
 ></iframe>

@@ -75,6 +75,18 @@ def generate_timetable(
                         for r in num_rooms) <= 1
                 )
 
+    # 4. Teacher Workload: 18-20 hours per week
+    for t_id, m_ids in teacher_mappings.items():
+        total_hours_for_teacher = sum(
+            assignments[(m_id, d, p, r)]
+            for m_id in m_ids
+            for d in num_days
+            for p in num_periods
+            for r in num_rooms
+        )
+        model.Add(total_hours_for_teacher >= 18)
+        model.Add(total_hours_for_teacher <= 20)
+
     # 4. No section double-booked in any slot
     section_mappings: Dict[int, List[int]] = {}
     for m in mappings:

@@ -17,3 +17,5 @@ start "Frontend" cmd /k "cd frontend && npm run dev"
 echo All services launched!
 echo If the public URL says 'Server unreachable', copy the tunnel URL and update it in the portal.
 exit
+
+

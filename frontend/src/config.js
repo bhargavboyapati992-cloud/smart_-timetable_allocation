@@ -10,6 +10,9 @@ export const getApiUrl = () => {
     return saved;
   }
 
+  const url = import.meta.env.VITE_API_URL || 'https://factor-driven-kooky.ngrok-free.dev';
+  console.log('VIMS System: Using API Engine at', saved && !saved.includes('trycloudflare.com') ? saved : url);
+  
   // Fallback to environment or the new Permanent Ngrok link
   return (
     import.meta.env.VITE_API_URL || 

@@ -152,7 +152,7 @@ function ChangeUsernamePanel({ onBack }) {
       const data = await res.json();
       if (!res.ok) { setError(data.detail || 'Failed'); }
       else { setMsg(data.message); }
-    } catch { setError('Server unreachable. Please check your network or update Server URL.'); }
+    } catch { setError('Server unreachable. Please ensure the local backend and Ngrok tunnel are running.'); }
     finally { setLoading(false); }
   };
 
@@ -240,7 +240,7 @@ function SignUpPanel({ onSuccess, onSwitchToLogin }) {
       const data = await res.json();
       if (!res.ok) { setError(data.detail || 'Google sign-in failed'); return; }
       login(data);
-    } catch { setError('Server unreachable. Please check your network or update Server URL.'); }
+    } catch { setError('Server unreachable. Please ensure the local backend and Ngrok tunnel are running.'); }
     finally { setLoading(false); }
   };
 
@@ -261,7 +261,7 @@ function SignUpPanel({ onSuccess, onSwitchToLogin }) {
       const data = await res.json();
       if (!res.ok) { setError(data.detail || 'Signup failed'); return; }
       login(data);  // auto-login after signup
-    } catch { setError('Server unreachable. Please check your network or update Server URL.'); }
+    } catch { setError('Server unreachable. Please ensure the local backend and Ngrok tunnel are running.'); }
     finally { setLoading(false); }
   };
 

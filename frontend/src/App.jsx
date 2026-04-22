@@ -92,7 +92,17 @@ function ConnectionManager({ apiUrl, setApiUrl, onBack }) {
       </div>
 
       {status === 'ok' && <p style={{ color: 'var(--acc-green)', fontSize: '0.75rem', marginBottom: '0.5rem' }}>✅ Connection Successful!</p>}
-      {status === 'fail' && <p style={{ color: 'var(--acc-red)', fontSize: '0.75rem', marginBottom: '0.5rem' }}>❌ Could not reach server at this URL.</p>}
+      {status === 'fail' && (
+        <div style={{ marginTop: '0.5rem' }}>
+          <p style={{ color: 'var(--acc-red)', fontSize: '0.75rem', marginBottom: '0.5rem' }}>❌ Could not reach server.</p>
+          <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+            Tip: If you are on a new network, click below to unlock the connection:
+          </p>
+          <a href={tempUrl} target="_blank" rel="noreferrer" className="btn btn-secondary" style={{ display: 'inline-block', marginTop: '0.4rem', fontSize: '0.7rem', padding: '0.3rem 0.6rem' }}>
+            🔓 Unlock Connection
+          </a>
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
         <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleSave}>Apply & Save</button>
@@ -442,6 +452,14 @@ function LoginPage() {
             boxShadow: challenges.grid_challenge_1 ? '0 0 8px var(--acc-green)' : 'none'
           }}></div>
           <span style={{ color: 'var(--text-muted)' }}>{challenges.grid_challenge_1 ? 'Engine Online' : 'Engine Offline'}</span>
+          {!challenges.grid_challenge_1 && (
+            <button 
+              onClick={() => setView('connection')} 
+              style={{ background:'none', border:'none', color:'var(--primary)', cursor:'pointer', fontSize:'0.7rem', textDecoration:'underline', marginLeft:'0.5rem' }}
+            >
+              How to fix?
+            </button>
+          )}
         </div>
 
         {/* Header — always visible */}

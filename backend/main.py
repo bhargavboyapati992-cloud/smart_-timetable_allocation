@@ -21,7 +21,7 @@ app.add_middleware(
     allow_origins=["*"],    # Restrict to portal domain in production
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["Content-Type", "Authorization", "X-Department-ID", "Bypass-Tunnel-Reminder", "ngrok-skip-browser-warning"],
 )
 
 @app.get("/")
@@ -95,7 +95,6 @@ class ForgotPasswordRequest(BaseModel):
 def forgot_password(body: ForgotPasswordRequest):
     if body.new_password != body.confirm_password:
         raise HTTPException(status_code=400, detail="Passwords do not match")
-    if len(body.new_password.strip()) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
     auth_module.change_password(body.username, body.new_password)
     return {"message": "Password updated successfully. Please log in with your new password."}

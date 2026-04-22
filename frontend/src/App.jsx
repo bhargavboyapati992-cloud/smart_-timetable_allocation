@@ -345,7 +345,7 @@ function LoginPage() {
             retries++;
             setTimeout(fetchChallenges, 2000); // Retry every 2 seconds
           } else {
-            setError('Cannot reach the server. You might need to update the Server URL.');
+            setError('Cannot reach the server. Please ensure the local backend and Ngrok tunnel are running on your computer.');
           }
         });
     };

@@ -14,6 +14,7 @@ export function useAuth() { return useContext(AuthContext); }
 
 function AuthProvider({ children }) {
   const [apiUrl, setApiUrl] = useState(INITIAL_API_URL);
+  const VERSION = "1.0.8"; // To verify cache refresh
   const [session, setSession] = useState(() => {
     try { return JSON.parse(sessionStorage.getItem('vims_session')); } catch { return null; }
   });
@@ -529,6 +530,9 @@ function LoginPage() {
 
             <p style={{ textAlign:'center', color:'var(--text-muted)', fontSize:'0.75rem', marginTop:'1rem' }}>
               Restricted to authorised VIMS staff only.<br/>Contact IT admin for access issues.
+            </p>
+            <p style={{ textAlign:'center', color:'rgba(255,255,255,0.2)', fontSize:'0.6rem', marginTop:'0.5rem' }}>
+              System Version: v1.0.8
             </p>
           </>
         )}

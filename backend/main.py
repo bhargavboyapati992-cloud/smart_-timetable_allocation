@@ -261,6 +261,9 @@ def generate_schedule(solverType: str = "ortools", x_department_id: str = Header
     mappings_data = []
     
     db_subjects = db.query(models.Subject).filter(models.Subject.department_id == x_department_id).all()
+    db_teachers = db.query(models.Teacher).filter(models.Teacher.department_id == x_department_id).all()
+    db_tas = db.query(models.TeachingAssistant).filter(models.TeachingAssistant.department_id == x_department_id).all()
+    
     subjects_info = {sub.id: {"hours": sub.hours_per_week, "type": sub.type, "name": sub.name} for sub in db_subjects}
     
     for m in db_mappings:

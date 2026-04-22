@@ -3,8 +3,15 @@
  * Returns the current API URL from localStorage, falling back to environment or default.
  */
 export const getApiUrl = () => {
+  const saved = localStorage.getItem('vims_api_url');
+  
+  // If we have a saved URL, use it UNLESS it's an old Cloudflare link
+  if (saved && !saved.includes('trycloudflare.com')) {
+    return saved;
+  }
+
+  // Fallback to environment or the new Permanent Ngrok link
   return (
-    localStorage.getItem('vims_api_url') || 
     import.meta.env.VITE_API_URL || 
     'https://factor-driven-kooky.ngrok-free.dev'
   );
